@@ -1,0 +1,20 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "compilar_quicksort",
+      "type": "shell",
+      "command": "gcc",
+      "args": [
+        "quicksort.c",
+        "-o",
+        "C:\\Users\\Pichau\\Codigos\\Projetos UFS\\PAA\\output\\quicksort.exe"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": ["$gcc"]
+    }
+  ]
+}

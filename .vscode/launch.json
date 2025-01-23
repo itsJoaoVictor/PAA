@@ -1,0 +1,25 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "C Runner: Debug Session",
+      "type": "cppdbg",
+      "request": "launch",
+      "args": ["quicksort.input", "quicksort.output"],
+      "stopAtEntry": false,
+      "externalConsole": true,
+      "cwd": "C:\\Users\\Pichau\\Codigos\\Projetos UFS\\PAA\\output",
+      "program": "C:\\Users\\Pichau\\Codigos\\Projetos UFS\\PAA\\output\\quicksort.exe",
+      "MIMode": "gdb",
+      "miDebuggerPath": "C:\\MinGW\\bin\\gdb.exe",
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        }
+      ],
+      "preLaunchTask": "compilar_quicksort"
+    }
+  ]
+}
