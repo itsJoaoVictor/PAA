@@ -1,9 +1,19 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <string.h>
 
 // Definindo o tamanho máximo dos vetores
 #define MAX_TAM 1000
+int arrOriginal[MAX_TAM]; // Lista original
+
+// Estrutura para armazenar os resultados de cada técnica
+typedef struct {
+    char nome[50]; // Nome da técnica
+    int trocasChamadas; // Soma de trocas + chamadas
+    int trocas; // Número de trocas
+    int chamadas; // Número de chamadas
+} Resultado;
 
 // Função de troca
 void troca(int* a, int* b) {
@@ -40,14 +50,17 @@ void quicksortLP(int arr[], int baixo, int alto, int* trocas, int* chamadas) {
 // Função Lomuto por Mediana de 3
 int particionaLM(int arr[], int baixo, int alto, int* trocas, int* chamadas) {
     int meio = baixo + (alto - baixo) / 2;
-    // Mediana de 3: baixo, meio, alto
+
+    // Ordenar baixo, meio e alto
     if (arr[baixo] > arr[meio]) troca(&arr[baixo], &arr[meio]);
     if (arr[meio] > arr[alto]) troca(&arr[meio], &arr[alto]);
     if (arr[baixo] > arr[meio]) troca(&arr[baixo], &arr[meio]);
 
-    int pivo = arr[meio];
+    // Mediana está agora no `meio`, movemos para o final
     troca(&arr[meio], &arr[alto]);
+    (*trocas)++;
 
+    int pivo = arr[alto];
     int i = baixo - 1;
     for (int j = baixo; j < alto; j++) {
         if (arr[j] <= pivo) {
@@ -60,6 +73,7 @@ int particionaLM(int arr[], int baixo, int alto, int* trocas, int* chamadas) {
     (*trocas)++;
     return i + 1;
 }
+
 
 void quicksortLM(int arr[], int baixo, int alto, int* trocas, int* chamadas) {
     (*chamadas)++;
@@ -112,26 +126,26 @@ void quicksortHP(int arr[], int baixo, int alto, int* trocas, int* chamadas) {
 // Função Hoare por Mediana de 3
 int particionaHM(int arr[], int baixo, int alto, int* trocas, int* chamadas) {
     int meio = baixo + (alto - baixo) / 2;
-    // Mediana de 3: baixo, meio, alto
+
+    // Ordenar baixo, meio e alto
     if (arr[baixo] > arr[meio]) troca(&arr[baixo], &arr[meio]);
     if (arr[meio] > arr[alto]) troca(&arr[meio], &arr[alto]);
     if (arr[baixo] > arr[meio]) troca(&arr[baixo], &arr[meio]);
 
+    // Usar a mediana como pivô
     int pivo = arr[meio];
-    troca(&arr[meio], &arr[alto]);
 
     int i = baixo - 1;
-    for (int j = baixo; j < alto; j++) {
-        if (arr[j] <= pivo) {
-            i++;
-            troca(&arr[i], &arr[j]);
-            (*trocas)++;
-        }
+    int j = alto + 1;
+    while (1) {
+        do { i++; } while (arr[i] < pivo);
+        do { j--; } while (arr[j] > pivo);
+        if (i >= j) return j;
+        troca(&arr[i], &arr[j]);
+        (*trocas)++;
     }
-    troca(&arr[i + 1], &arr[alto]);
-    (*trocas)++;
-    return i + 1;
 }
+
 
 void quicksortHM(int arr[], int baixo, int alto, int* trocas, int* chamadas) {
     (*chamadas)++;
@@ -144,22 +158,37 @@ void quicksortHM(int arr[], int baixo, int alto, int* trocas, int* chamadas) {
 
 // Função Hoare por Pivô Aleatório
 int particionaHA(int arr[], int baixo, int alto, int* trocas, int* chamadas) {
+    // Escolhe um índice aleatório para o pivô
     int pivoIndice = baixo + rand() % (alto - baixo + 1);
+    // Troca o pivô aleatório com o último elemento
     troca(&arr[alto], &arr[pivoIndice]);
+    (*trocas)++;  // Contabilizando a troca
+
+    // Agora a partição pode ser feita normalmente
     return particionaHP(arr, baixo, alto, trocas, chamadas);
 }
 
 void quicksortHA(int arr[], int baixo, int alto, int* trocas, int* chamadas) {
     (*chamadas)++;
     if (baixo < alto) {
+        // Chama a partição
         int pivo = particionaHA(arr, baixo, alto, trocas, chamadas);
-        quicksortHA(arr, baixo, pivo - 1, trocas, chamadas);
+        // Recursão nos sub-arrays
+        quicksortHA(arr, baixo, pivo, trocas, chamadas);
         quicksortHA(arr, pivo + 1, alto, trocas, chamadas);
     }
 }
 
+
+// Função para ordenação de técnicas
+int comparaResultados(const void* a, const void* b) {
+    return ((Resultado*)a)->trocasChamadas - ((Resultado*)b)->trocasChamadas;
+}
+
 // Função principal
 int main(int argc, char* argv[]) {
+
+    srand(time(NULL));
     // Abrindo arquivos
     FILE* input = fopen(argv[1], "r");
     FILE* output = fopen(argv[2], "w");
@@ -176,84 +205,60 @@ int main(int argc, char* argv[]) {
     for (int i = 0; i < n; i++) {
         int tamanho;
         fscanf(input, "%d", &tamanho);
-        int arr[MAX_TAM];
-
         for (int j = 0; j < tamanho; j++) {
-            fscanf(input, "%d", &arr[j]);
+            fscanf(input, "%d", &arrOriginal[j]); // Carregar a lista original
         }
 
+        int arr[MAX_TAM]; // Lista temporária para cada método
+
+        // Inicializa os resultados
+        Resultado resultados[6];
+
+        // Lomuto Padrão
+        memcpy(arr, arrOriginal, sizeof(int) * tamanho); // Restaurar a lista original
         int trocasLP = 0, chamadasLP = 0;
+        quicksortLP(arr, 0, tamanho - 1, &trocasLP, &chamadasLP);
+        resultados[0] = (Resultado){"LP", trocasLP + chamadasLP, trocasLP, chamadasLP};
+
+        // Hoare Padrão
+        memcpy(arr, arrOriginal, sizeof(int) * tamanho); // Restaurar a lista original
         int trocasHP = 0, chamadasHP = 0;
+        quicksortHP(arr, 0, tamanho - 1, &trocasHP, &chamadasHP);
+        resultados[1] = (Resultado){"HP", trocasHP + chamadasHP, trocasHP, chamadasHP};
+
+        // Lomuto com Mediana de 3
+        memcpy(arr, arrOriginal, sizeof(int) * tamanho); // Restaurar a lista original
         int trocasLM = 0, chamadasLM = 0;
+        quicksortLM(arr, 0, tamanho - 1, &trocasLM, &chamadasLM);
+        resultados[2] = (Resultado){"LM", trocasLM + chamadasLM, trocasLM, chamadasLM};
+
+        // Hoare com Mediana de 3
+        memcpy(arr, arrOriginal, sizeof(int) * tamanho); // Restaurar a lista original
         int trocasHM = 0, chamadasHM = 0;
+        quicksortHM(arr, 0, tamanho - 1, &trocasHM, &chamadasHM);
+        resultados[3] = (Resultado){"HM", trocasHM + chamadasHM, trocasHM, chamadasHM};
+
+        // Hoare com Pivô Aleatório
+        memcpy(arr, arrOriginal, sizeof(int) * tamanho); // Restaurar a lista original
         int trocasHA = 0, chamadasHA = 0;
+        quicksortHA(arr, 0, tamanho - 1, &trocasHA, &chamadasHA);
+        resultados[4] = (Resultado){"HA", trocasHA + chamadasHA, trocasHA, chamadasHA};
+
+        // Lomuto com Pivô Aleatório
+        memcpy(arr, arrOriginal, sizeof(int) * tamanho); // Restaurar a lista original
         int trocasLA = 0, chamadasLA = 0;
+        quicksortLA(arr, 0, tamanho - 1, &trocasLA, &chamadasLA);
+        resultados[5] = (Resultado){"LA", trocasLA + chamadasLA, trocasLA, chamadasLA};
 
-        // Criando uma cópia inicial da lista
-        int arrLP[MAX_TAM], arrHP[MAX_TAM], arrLM[MAX_TAM], arrHM[MAX_TAM], arrHA[MAX_TAM], arrLA[MAX_TAM];
-        for (int j = 0; j < tamanho; j++) {
-            arrLP[j] = arrHP[j] = arrLM[j] = arrHM[j] = arrHA[j] = arrLA[j] = arr[j];
-        }
+        // Ordena os resultados pela soma de trocas + chamadas
+        qsort(resultados, 6, sizeof(Resultado), comparaResultados);
 
-        // Escrevendo o estado da lista antes de cada ordenação no arquivo
-        fprintf(output, "Lista antes do Lomuto Padrão: ");
-        for (int j = 0; j < tamanho; j++) {
-            fprintf(output, "%d ", arrLP[j]);
-        }
-        fprintf(output, "\n");
-
-        quicksortLP(arrLP, 0, tamanho - 1, &trocasLP, &chamadasLP);
-
-        fprintf(output, "Lista antes do Hoare Padrão: ");
-        for (int j = 0; j < tamanho; j++) {
-            fprintf(output, "%d ", arrHP[j]);
+        // Escrevendo a saída no formato correto
+        fprintf(output, "%d:N(%d)", i, tamanho);
+        for (int j = 0; j < 6; j++) {
+            fprintf(output, ",%s(%d)", resultados[j].nome, resultados[j].trocasChamadas);
         }
         fprintf(output, "\n");
-
-        quicksortHP(arrHP, 0, tamanho - 1, &trocasHP, &chamadasHP);
-
-        fprintf(output, "Lista antes do Lomuto com Mediana de 3: ");
-        for (int j = 0; j < tamanho; j++) {
-            fprintf(output, "%d ", arrLM[j]);
-        }
-        fprintf(output, "\n");
-
-        quicksortLM(arrLM, 0, tamanho - 1, &trocasLM, &chamadasLM);
-
-        fprintf(output, "Lista antes do Hoare com Mediana de 3: ");
-        for (int j = 0; j < tamanho; j++) {
-            fprintf(output, "%d ", arrHM[j]);
-        }
-        fprintf(output, "\n");
-
-        quicksortHM(arrHM, 0, tamanho - 1, &trocasHM, &chamadasHM);
-
-        fprintf(output, "Lista antes do Hoare com Pivô Aleatório: ");
-        for (int j = 0; j < tamanho; j++) {
-            fprintf(output, "%d ", arrHA[j]);
-        }
-        fprintf(output, "\n");
-
-        quicksortHA(arrHA, 0, tamanho - 1, &trocasHA, &chamadasHA);
-
-        fprintf(output, "Lista antes do Lomuto com Pivô Aleatório: ");
-        for (int j = 0; j < tamanho; j++) {
-            fprintf(output, "%d ", arrLA[j]);
-        }
-        fprintf(output, "\n");
-
-        quicksortLA(arrLA, 0, tamanho - 1, &trocasLA, &chamadasLA);
-
-        // Escrevendo o resumo das trocas e chamadas
-        fprintf(output, "%d:N(%d),LP(%d:%d),HP(%d:%d),LM(%d:%d),HM(%d:%d),HA(%d:%d),LA(%d:%d)\n\n",
-                i, tamanho,
-                trocasLP + chamadasLP, trocasLP, // Soma de trocas e chamadas, e somente trocas para Lomuto Padrão
-                trocasHP + chamadasHP, trocasHP, // Soma de trocas e chamadas, e somente trocas para Hoare Padrão
-                trocasLM + chamadasLM, trocasLM, // Soma de trocas e chamadas, e somente trocas para Lomuto com Mediana de 3
-                trocasHM + chamadasHM, trocasHM, // Soma de trocas e chamadas, e somente trocas para Hoare com Mediana de 3
-                trocasHA + chamadasHA, trocasHA, // Soma de trocas e chamadas, e somente trocas para Hoare com Pivô Aleatório
-                trocasLA + chamadasLA, trocasLA  // Soma de trocas e chamadas, e somente trocas para Lomuto com Pivô Aleatório
-        );
     }
 
     // Fechando arquivos

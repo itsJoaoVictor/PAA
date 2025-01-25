@@ -22,6 +22,11 @@ void troca(int* a, int* b) {
     *b = temp;
 }
 
+// Função para restaurar a lista original
+void restaurarLista(int arr[], int tamanho) {
+    memcpy(arr, arrOriginal, sizeof(int) * tamanho);
+}
+
 // Função Lomuto Padrão
 int particionaLP(int arr[], int baixo, int alto, int* trocas, int* chamadas) {
     int pivo = arr[alto];
@@ -49,15 +54,25 @@ void quicksortLP(int arr[], int baixo, int alto, int* trocas, int* chamadas) {
 
 // Função Lomuto por Mediana de 3
 int particionaLM(int arr[], int baixo, int alto, int* trocas, int* chamadas) {
-    int meio = baixo + (alto - baixo) / 2;
-    // Mediana de 3: baixo, meio, alto
-    if (arr[baixo] > arr[meio]) troca(&arr[baixo], &arr[meio]);
-    if (arr[meio] > arr[alto]) troca(&arr[meio], &arr[alto]);
-    if (arr[baixo] > arr[meio]) troca(&arr[baixo], &arr[meio]);
-
-    int pivo = arr[meio];
-    troca(&arr[meio], &arr[alto]);
-
+    int n = alto - baixo + 1;
+    
+    // Definir os índices V1, V2 e V3
+    int V1 = baixo + n / 4;
+    int V2 = baixo + n / 2;
+    int V3 = baixo + 3 * n / 4;
+    
+    // Ordenar V1, V2, V3
+    if (arr[V1] > arr[V2]) troca(&arr[V1], &arr[V2]);
+    if (arr[V2] > arr[V3]) troca(&arr[V2], &arr[V3]);
+    if (arr[V1] > arr[V2]) troca(&arr[V1], &arr[V2]);
+    
+    // Agora, a mediana está em V2, e será o pivô
+    int pivo = arr[V2];
+    
+    // Troca o pivô com o último elemento
+    troca(&arr[V2], &arr[alto]);
+    (*trocas)++;
+    
     int i = baixo - 1;
     for (int j = baixo; j < alto; j++) {
         if (arr[j] <= pivo) {
@@ -68,8 +83,10 @@ int particionaLM(int arr[], int baixo, int alto, int* trocas, int* chamadas) {
     }
     troca(&arr[i + 1], &arr[alto]);
     (*trocas)++;
+    
     return i + 1;
 }
+
 
 void quicksortLM(int arr[], int baixo, int alto, int* trocas, int* chamadas) {
     (*chamadas)++;
@@ -122,25 +139,24 @@ void quicksortHP(int arr[], int baixo, int alto, int* trocas, int* chamadas) {
 // Função Hoare por Mediana de 3
 int particionaHM(int arr[], int baixo, int alto, int* trocas, int* chamadas) {
     int meio = baixo + (alto - baixo) / 2;
-    // Mediana de 3: baixo, meio, alto
+
+    // Ordenar baixo, meio e alto
     if (arr[baixo] > arr[meio]) troca(&arr[baixo], &arr[meio]);
     if (arr[meio] > arr[alto]) troca(&arr[meio], &arr[alto]);
     if (arr[baixo] > arr[meio]) troca(&arr[baixo], &arr[meio]);
 
+    // Usar a mediana como pivô
     int pivo = arr[meio];
-    troca(&arr[meio], &arr[alto]);
 
     int i = baixo - 1;
-    for (int j = baixo; j < alto; j++) {
-        if (arr[j] <= pivo) {
-            i++;
-            troca(&arr[i], &arr[j]);
-            (*trocas)++;
-        }
+    int j = alto + 1;
+    while (1) {
+        do { i++; } while (arr[i] < pivo);
+        do { j--; } while (arr[j] > pivo);
+        if (i >= j) return j;
+        troca(&arr[i], &arr[j]);
+        (*trocas)++;
     }
-    troca(&arr[i + 1], &arr[alto]);
-    (*trocas)++;
-    return i + 1;
 }
 
 void quicksortHM(int arr[], int baixo, int alto, int* trocas, int* chamadas) {
@@ -175,7 +191,6 @@ void quicksortHA(int arr[], int baixo, int alto, int* trocas, int* chamadas) {
     }
 }
 
-
 // Função para ordenação de técnicas
 int comparaResultados(const void* a, const void* b) {
     return ((Resultado*)a)->trocasChamadas - ((Resultado*)b)->trocasChamadas;
@@ -183,8 +198,8 @@ int comparaResultados(const void* a, const void* b) {
 
 // Função principal
 int main(int argc, char* argv[]) {
-
     srand(time(NULL));
+    
     // Abrindo arquivos
     FILE* input = fopen(argv[1], "r");
     FILE* output = fopen(argv[2], "w");
@@ -211,37 +226,37 @@ int main(int argc, char* argv[]) {
         Resultado resultados[6];
 
         // Lomuto Padrão
-        memcpy(arr, arrOriginal, sizeof(int) * tamanho); // Restaurar a lista original
+        restaurarLista(arr, tamanho);
         int trocasLP = 0, chamadasLP = 0;
         quicksortLP(arr, 0, tamanho - 1, &trocasLP, &chamadasLP);
         resultados[0] = (Resultado){"LP", trocasLP + chamadasLP, trocasLP, chamadasLP};
 
         // Hoare Padrão
-        memcpy(arr, arrOriginal, sizeof(int) * tamanho); // Restaurar a lista original
+        restaurarLista(arr, tamanho);
         int trocasHP = 0, chamadasHP = 0;
         quicksortHP(arr, 0, tamanho - 1, &trocasHP, &chamadasHP);
         resultados[1] = (Resultado){"HP", trocasHP + chamadasHP, trocasHP, chamadasHP};
 
         // Lomuto com Mediana de 3
-        memcpy(arr, arrOriginal, sizeof(int) * tamanho); // Restaurar a lista original
+        restaurarLista(arr, tamanho);
         int trocasLM = 0, chamadasLM = 0;
         quicksortLM(arr, 0, tamanho - 1, &trocasLM, &chamadasLM);
         resultados[2] = (Resultado){"LM", trocasLM + chamadasLM, trocasLM, chamadasLM};
 
         // Hoare com Mediana de 3
-        memcpy(arr, arrOriginal, sizeof(int) * tamanho); // Restaurar a lista original
+        restaurarLista(arr, tamanho);
         int trocasHM = 0, chamadasHM = 0;
         quicksortHM(arr, 0, tamanho - 1, &trocasHM, &chamadasHM);
         resultados[3] = (Resultado){"HM", trocasHM + chamadasHM, trocasHM, chamadasHM};
 
         // Hoare com Pivô Aleatório
-        memcpy(arr, arrOriginal, sizeof(int) * tamanho); // Restaurar a lista original
+        restaurarLista(arr, tamanho);
         int trocasHA = 0, chamadasHA = 0;
         quicksortHA(arr, 0, tamanho - 1, &trocasHA, &chamadasHA);
         resultados[4] = (Resultado){"HA", trocasHA + chamadasHA, trocasHA, chamadasHA};
 
         // Lomuto com Pivô Aleatório
-        memcpy(arr, arrOriginal, sizeof(int) * tamanho); // Restaurar a lista original
+        restaurarLista(arr, tamanho);
         int trocasLA = 0, chamadasLA = 0;
         quicksortLA(arr, 0, tamanho - 1, &trocasLA, &chamadasLA);
         resultados[5] = (Resultado){"LA", trocasLA + chamadasLA, trocasLA, chamadasLA};
