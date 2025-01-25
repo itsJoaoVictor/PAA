@@ -107,14 +107,11 @@ void quicksortLM(int arr[], int baixo, int alto, int* trocas, int* chamadas) {
 
 // Função Lomuto por Pivô Aleatório
 int particionaLA(int arr[], int baixo, int alto, int* trocas, int* chamadas) {
-    // Calculando o índice do pivô com a fórmula fornecida
-    int n = alto - baixo + 1;
-    int pivoIndice = baixo + abs(arr[baixo]) % n;  // Calculando com o valor absoluto de arr[baixo] e ajustando com mod n
-
-    // Troca o pivô com o último elemento
+    // Calculando o índice aleatório utilizando a fórmula fornecida
+    int n = alto - baixo + 1;  // Tamanho da partição
+    int pivoIndice = baixo + abs(arr[baixo]) % n;  // Fórmula Aleatória
     troca(&arr[alto], &arr[pivoIndice]);
-    
-    // Chama a partição Lomuto normal
+    (*trocas)++;  // Contabilizando a troca
     return particionaLP(arr, baixo, alto, trocas, chamadas);
 }
 
@@ -126,6 +123,7 @@ void quicksortLA(int arr[], int baixo, int alto, int* trocas, int* chamadas) {
         quicksortLA(arr, pivo + 1, alto, trocas, chamadas);
     }
 }
+
 
 // Função Hoare Padrão
 int particionaHP(int arr[], int baixo, int alto, int* trocas, int* chamadas) {
@@ -203,15 +201,13 @@ void quicksortHM(int arr[], int baixo, int alto, int* trocas, int* chamadas) {
 
 // Função Hoare por Pivô Aleatório
 int particionaHA(int arr[], int baixo, int alto, int* trocas, int* chamadas) {
-    // Calculando o índice do pivô com a fórmula fornecida
-    int n = alto - baixo + 1;
-    int pivoIndice = baixo + abs(arr[baixo]) % n;  // Calculando com o valor absoluto de arr[baixo] e ajustando com mod n
-
-    // Troca o pivô com o último elemento
+    // Calculando o índice aleatório utilizando a fórmula fornecida
+    int n = alto - baixo + 1;  // Tamanho da partição
+    int pivoIndice = baixo + abs(arr[baixo]) % n;  // Fórmula Aleatória
     troca(&arr[alto], &arr[pivoIndice]);
     (*trocas)++;  // Contabilizando a troca
 
-    // Chama a partição Hoare normal
+    // Agora a partição pode ser feita normalmente
     return particionaHP(arr, baixo, alto, trocas, chamadas);
 }
 
@@ -223,6 +219,7 @@ void quicksortHA(int arr[], int baixo, int alto, int* trocas, int* chamadas) {
         quicksortHA(arr, pivo + 1, alto, trocas, chamadas);
     }
 }
+
 
 // Função para ordenação de técnicas
 int comparaResultados(const void* a, const void* b) {
