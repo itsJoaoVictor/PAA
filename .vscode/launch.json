@@ -9,7 +9,7 @@
       "stopAtEntry": false,
       "externalConsole": true,
       "cwd": "C:\\Users\\Pichau\\Codigos\\Projetos UFS\\PAA\\output",
-      "program": "C:\\Users\\Pichau\\Codigos\\Projetos UFS\\PAA\\output\\quicksort.exe",
+      "program": "C:\\Users\\Pichau\\Codigos\\Projetos UFS\\PAA\\output\\joaovictorflorencio_201700100141_quicksort.exe",
       "MIMode": "gdb",
       "miDebuggerPath": "C:\\MinGW\\bin\\gdb.exe",
       "setupCommands": [
@@ -19,7 +19,8 @@
           "ignoreFailures": true
         }
       ],
-      "preLaunchTask": "compilar_quicksort"
+      "preLaunchTask": "compilar_quicksort",
+      "postDebugTask": "comparar_quicksort"
     }
   ]
 }
