@@ -177,38 +177,47 @@ void quicksortHP(int arr[], int baixo, int alto, int* trocas, int* chamadas) {
 int particionaHM(int arr[], int baixo, int alto, int* trocas, int* chamadas) {
     int n = alto - baixo + 1;
 
-    // Definir os índices V1, V2 e V3
-    int V1 = baixo + n / 4;
-    int V2 = baixo + n / 2;
-    int V3 = baixo + 3 * n / 4;
+    // Determina os índices para calcular a mediana de 3
+    int idx1 = baixo + n / 4;
+    int idx2 = baixo + n / 2;
+    int idx3 = baixo + 3 * n / 4;
 
-    // Ordenar V1, V2, V3 para garantir que a mediana seja o valor do meio
-    if (arr[V1] > arr[V2]) troca(&arr[V1], &arr[V2]);
-    if (arr[V2] > arr[V3]) troca(&arr[V2], &arr[V3]);
-    if (arr[V1] > arr[V2]) troca(&arr[V1], &arr[V2]);
+    // Calcula a mediana de 3
+    Mediana mediana = calculaMediana(arr[idx1], arr[idx2], arr[idx3]);
 
-    // Agora, a mediana está em V2, e será o pivô
-    int pivo = arr[V2];
-
-    // Troca o pivô com o primeiro elemento (pois Hoare utiliza o pivô na posição inicial)
-    troca(&arr[baixo], &arr[V2]);
+    // Coloca a mediana na posição final (início do array)
+    if (mediana.indice == 0)
+        troca(&arr[idx1], &arr[baixo]);
+    else if (mediana.indice == 1)
+        troca(&arr[idx2], &arr[baixo]);
+    else
+        troca(&arr[idx3], &arr[baixo]);
     (*trocas)++;
+
+    // O pivô é o primeiro elemento após a troca
+    int pivo = arr[baixo];
 
     int i = baixo - 1;
     int j = alto + 1;
 
-    // Loop de partição Hoare
+    // Loop de particionamento Hoare
     while (1) {
-        do { i++; } while (arr[i] < pivo);  // Move i até encontrar valor >= pivô
-        do { j--; } while (arr[j] > pivo);  // Move j até encontrar valor <= pivô
+        // Move i até encontrar um valor maior ou igual ao pivô
+        do { i++; } while (arr[i] < pivo);
+        
+        // Move j até encontrar um valor menor ou igual ao pivô
+        do { j--; } while (arr[j] > pivo);
 
-        if (i >= j) return j;  // Se os índices se cruzam, partição finalizada
+        // Se os índices se cruzarem, a partição está completa
+        if (i >= j) return j;
 
         // Troca os elementos nos índices i e j
         troca(&arr[i], &arr[j]);
         (*trocas)++;
     }
 }
+
+
 
 // Função QuickSort com partição Hoare
 void quicksortHM(int arr[], int baixo, int alto, int* trocas, int* chamadas) {
@@ -276,16 +285,16 @@ int main(int argc, char* argv[]) {
     int n;
     fscanf(input, "%d", &n);
 
-    for (int i = 0; i < n; i++) {
+    for (int i = 0; i < n; i++)
+    {
         int tamanho;
         fscanf(input, "%d", &tamanho);
-        for (int j = 0; j < tamanho; j++) {
+        for (int j = 0; j < tamanho; j++)
+        {
             fscanf(input, "%d", &arrOriginal[j]); // Carregar a lista original
         }
 
         int arr[MAX_TAM]; // Lista temporária para cada método
-
-        // Inicializa os resultados
         Resultado resultados[6];
 
         // Lomuto Padrão
@@ -328,13 +337,16 @@ int main(int argc, char* argv[]) {
         qsort(resultados, 6, sizeof(Resultado), comparaResultados);
 
         // Escrevendo a saída no formato correto
+        if (i > 0)
+        {
+            fprintf(output, "\n"); // Adiciona uma nova linha apenas se não for a primeira iteração
+        }
         fprintf(output, "%d:N(%d)", i, tamanho);
-        for (int j = 0; j < 6; j++) {
+        for (int j = 0; j < 6; j++)
+        {
             fprintf(output, ",%s(%d)", resultados[j].nome, resultados[j].trocasChamadas);
         }
-        fprintf(output, "\n");
     }
-
     // Fechando arquivos
     fclose(input);
     fclose(output);
