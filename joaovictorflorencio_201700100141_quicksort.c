@@ -22,7 +22,6 @@ void troca(int* a, int* b) {
     *b = temp;
 }
 
-
 // Função auxiliar para calcular a mediana de 3 valores
 typedef struct {
     int valor;
@@ -36,7 +35,6 @@ Mediana calculaMediana(int a, int b, int c) {
         return (Mediana){a, 0};
     return (Mediana){c, 2};
 }
-
 
 // Função para restaurar a lista original
 void restaurarLista(int arr[], int tamanho) {
@@ -67,8 +65,6 @@ void quicksortLP(int arr[], int baixo, int alto, int* trocas, int* chamadas) {
         quicksortLP(arr, pivo + 1, alto, trocas, chamadas);
     }
 }
-
-
 
 // Função Lomuto com Mediana de 3
 int particionaLM(int arr[], int baixo, int alto, int* trocas, int* chamadas) {
@@ -149,7 +145,6 @@ void quicksortLA(int arr[], int baixo, int alto, int* trocas, int* chamadas) {
     }
 }
 
-
 // Função Hoare Padrão
 int particionaHP(int arr[], int baixo, int alto, int* trocas, int* chamadas) {
     int pivo = arr[baixo];
@@ -217,8 +212,6 @@ int particionaHM(int arr[], int baixo, int alto, int* trocas, int* chamadas) {
     }
 }
 
-
-
 // Função QuickSort com partição Hoare
 void quicksortHM(int arr[], int baixo, int alto, int* trocas, int* chamadas) {
     (*chamadas)++;
@@ -231,7 +224,6 @@ void quicksortHM(int arr[], int baixo, int alto, int* trocas, int* chamadas) {
         quicksortHM(arr, pivo + 1, alto, trocas, chamadas);
     }
 }
-
 
 // Função de particionamento Hoare por pivô aleatório
 int particionaHA(int arr[], int baixo, int alto, int* trocas, int* chamadas) {
@@ -262,12 +254,27 @@ void quicksortHA(int arr[], int baixo, int alto, int* trocas, int* chamadas) {
     }
 }
 
-
 // Função para ordenação de técnicas
 int comparaResultados(const void* a, const void* b) {
-    return ((Resultado*)a)->trocasChamadas - ((Resultado*)b)->trocasChamadas;
-}
+    // Ordem fixa das técnicas
+    const char* ordem[] = {"LP", "LM", "LA", "HP", "HM", "HA"};
+    
+    int diff = ((Resultado*)a)->trocasChamadas - ((Resultado*)b)->trocasChamadas;
 
+    if (diff == 0) {
+        // Se as somas de trocas e chamadas forem iguais, ordena pela ordem fixa das técnicas
+        int posA = -1, posB = -1;
+        
+        for (int i = 0; i < 6; i++) {
+            if (strcmp(((Resultado*)a)->nome, ordem[i]) == 0) posA = i;
+            if (strcmp(((Resultado*)b)->nome, ordem[i]) == 0) posB = i;
+        }
+
+        return posA - posB; // Ordena pela posição na lista "ordem"
+    }
+
+    return diff; // Se as somas forem diferentes, compara normalmente
+}
 // Função principal
 int main(int argc, char* argv[]) {
     srand(time(NULL));
