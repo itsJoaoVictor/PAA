@@ -105,14 +105,26 @@ void quicksortLM(int arr[], int baixo, int alto, int* trocas, int* chamadas) {
     }
 }
 
-// Função Lomuto por Pivô Aleatório
+// Função de particionamento Lomuto por pivô aleatório
 int particionaLA(int arr[], int baixo, int alto, int* trocas, int* chamadas) {
-    // Calculando o índice aleatório utilizando a fórmula fornecida
     int n = alto - baixo + 1;  // Tamanho da partição
-    int pivoIndice = baixo + abs(arr[baixo]) % n;  // Fórmula Aleatória
-    troca(&arr[alto], &arr[pivoIndice]);
-    (*trocas)++;  // Contabilizando a troca
-    return particionaLP(arr, baixo, alto, trocas, chamadas);
+    int pivoIndice = baixo + abs(arr[baixo]) % n; // Fórmula para pivô aleatório
+    troca(&arr[alto], &arr[pivoIndice]); // Troca o pivô aleatório com o último elemento
+    (*trocas)++;
+
+    int pivo = arr[alto];
+    int i = baixo - 1;
+
+    for (int j = baixo; j < alto; j++) {
+        if (arr[j] <= pivo) {
+            i++;
+            troca(&arr[i], &arr[j]);
+            (*trocas)++;
+        }
+    }
+    troca(&arr[i + 1], &arr[alto]);
+    (*trocas)++;
+    return i + 1;
 }
 
 void quicksortLA(int arr[], int baixo, int alto, int* trocas, int* chamadas) {
@@ -199,16 +211,24 @@ void quicksortHM(int arr[], int baixo, int alto, int* trocas, int* chamadas) {
 }
 
 
-// Função Hoare por Pivô Aleatório
+// Função de particionamento Hoare por pivô aleatório
 int particionaHA(int arr[], int baixo, int alto, int* trocas, int* chamadas) {
-    // Calculando o índice aleatório utilizando a fórmula fornecida
     int n = alto - baixo + 1;  // Tamanho da partição
-    int pivoIndice = baixo + abs(arr[baixo]) % n;  // Fórmula Aleatória
-    troca(&arr[alto], &arr[pivoIndice]);
-    (*trocas)++;  // Contabilizando a troca
+    int pivoIndice = baixo + abs(arr[baixo]) % n; // Fórmula para pivô aleatório
+    troca(&arr[baixo], &arr[pivoIndice]); // Troca o pivô aleatório com o primeiro elemento
+    (*trocas)++;
 
-    // Agora a partição pode ser feita normalmente
-    return particionaHP(arr, baixo, alto, trocas, chamadas);
+    int pivo = arr[baixo];
+    int i = baixo - 1;
+    int j = alto + 1;
+
+    while (1) {
+        do { i++; } while (arr[i] < pivo);
+        do { j--; } while (arr[j] > pivo);
+        if (i >= j) return j;
+        troca(&arr[i], &arr[j]);
+        (*trocas)++;
+    }
 }
 
 void quicksortHA(int arr[], int baixo, int alto, int* trocas, int* chamadas) {
