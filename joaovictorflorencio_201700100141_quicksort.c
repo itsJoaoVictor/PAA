@@ -22,6 +22,22 @@ void troca(int* a, int* b) {
     *b = temp;
 }
 
+
+// Função auxiliar para calcular a mediana de 3 valores
+typedef struct {
+    int valor;
+    int indice;
+} Mediana;
+
+Mediana calculaMediana(int a, int b, int c) {
+    if ((a <= b && b <= c) || (c <= b && b <= a))
+        return (Mediana){b, 1};
+    if ((b <= a && a <= c) || (c <= a && a <= b))
+        return (Mediana){a, 0};
+    return (Mediana){c, 2};
+}
+
+
 // Função para restaurar a lista original
 void restaurarLista(int arr[], int tamanho) {
     memcpy(arr, arrOriginal, sizeof(int) * tamanho);
@@ -52,50 +68,47 @@ void quicksortLP(int arr[], int baixo, int alto, int* trocas, int* chamadas) {
     }
 }
 
-int particionaLM(int arr[], int baixo, int alto, int *trocas, int *chamadas)
-{
+
+
+// Função Lomuto com Mediana de 3
+int particionaLM(int arr[], int baixo, int alto, int* trocas, int* chamadas) {
     int n = alto - baixo + 1;
 
-    // Definir os índices V1, V2 e V3
-    int V1 = baixo + n / 4;
-    int V2 = baixo + n / 2;
-    int V3 = baixo + 3 * n / 4;
+    // Determina os índices para calcular a mediana de 3
+    int idx1 = baixo + n / 4;
+    int idx2 = baixo + n / 2;
+    int idx3 = baixo + 3 * n / 4;
 
-    // Ordenar V1, V2, V3 para garantir que a mediana seja o valor do meio
-    if (arr[V1] > arr[V2]) troca(&arr[V1], &arr[V2]);
-    if (arr[V2] > arr[V3]) troca(&arr[V2], &arr[V3]);
-    if (arr[V1] > arr[V2]) troca(&arr[V1], &arr[V2]);
+    // Calcula a mediana de 3
+    Mediana mediana = calculaMediana(arr[idx1], arr[idx2], arr[idx3]);
 
-    // Agora, a mediana está em V2, e será o pivô
-    int pivo = arr[V2];
-
-    // Troca o pivô com o último elemento
-    troca(&arr[V2], &arr[alto]);
+    // Coloca a mediana na posição final
+    if (mediana.indice == 0)
+        troca(&arr[idx1], &arr[alto]);
+    else if (mediana.indice == 1)
+        troca(&arr[idx2], &arr[alto]);
+    else
+        troca(&arr[idx3], &arr[alto]);
     (*trocas)++;
 
+    int pivo = arr[alto];
     int i = baixo - 1;
 
-    // Loop de partição
-    for (int j = baixo; j < alto; j++)
-    {
-        if (arr[j] <= pivo)
-        {
+    // Particiona o array
+    for (int j = baixo; j < alto; j++) {
+        if (arr[j] <= pivo) {
             i++;
             troca(&arr[i], &arr[j]);
             (*trocas)++;
         }
     }
 
-    // Troca o pivô de volta para a posição correta
     troca(&arr[i + 1], &arr[alto]);
     (*trocas)++;
-
-    // Aqui, o pivô é agora na posição correta, e retornamos o índice do pivô
     return i + 1;
 }
 
-
-
+// Função Quicksort com Lomuto Mediana de 3
 void quicksortLM(int arr[], int baixo, int alto, int* trocas, int* chamadas) {
     (*chamadas)++;
     if (baixo < alto) {
