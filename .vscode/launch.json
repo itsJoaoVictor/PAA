@@ -2,10 +2,37 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "C Runner: Debug Session",
+      "name": "C Runner: Debug Datagrams",
       "type": "cppdbg",
       "request": "launch",
-      "args": ["quicksort.input", "quicksort.output"],
+      "args": [
+        "datagrama.input",
+        "datagrama.output"
+      ],
+      "stopAtEntry": false,
+      "externalConsole": true,
+      "cwd": "C:\\Users\\Pichau\\Codigos\\Projetos UFS\\PAA\\output",
+      "program": "C:\\Users\\Pichau\\Codigos\\Projetos UFS\\PAA\\output\\joaovictorflorencio_201700100141_datagrama.exe",
+      "MIMode": "gdb",
+      "miDebuggerPath": "C:\\MinGW\\bin\\gdb.exe",
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        }
+      ],
+      "preLaunchTask": "compilar_datagrama",
+      "postDebugTask": "comparar_datagrama"
+    },
+    {
+      "name": "C Runner: Debug Quicksort",
+      "type": "cppdbg",
+      "request": "launch",
+      "args": [
+        "quicksort.input",
+        "quicksort.output"
+      ],
       "stopAtEntry": false,
       "externalConsole": true,
       "cwd": "C:\\Users\\Pichau\\Codigos\\Projetos UFS\\PAA\\output",

@@ -9,10 +9,10 @@ int arrOriginal[MAX_TAM]; // Lista original
 
 // Estrutura para armazenar os resultados de cada técnica
 typedef struct {
-    char nome[50]; // Nome da técnica
-    int trocasChamadas; // Soma de trocas + chamadas
-    int trocas; // Número de trocas
-    int chamadas; // Número de chamadas
+    char nome[50]; 
+    int trocasChamadas; 
+    int trocas; 
+    int chamadas; 
 } Resultado;
 
 // Função de troca

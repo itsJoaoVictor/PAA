@@ -14,7 +14,26 @@
         "kind": "build",
         "isDefault": true
       },
-      "problemMatcher": ["$gcc"]
+      "problemMatcher": [
+        "$gcc"
+      ]
+    },
+    {
+      "label": "compilar_datagrama",
+      "type": "shell",
+      "command": "gcc",
+      "args": [
+        "joaovictorflorencio_201700100141_datagrama.c",
+        "-o",
+        "C:\\Users\\Pichau\\Codigos\\Projetos UFS\\PAA\\output\\joaovictorflorencio_201700100141_datagrama.exe"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": [
+        "$gcc"
+      ]
     },
     {
       "label": "comparar_quicksort",
@@ -22,6 +41,19 @@
       "command": "python",
       "args": [
         "${workspaceFolder}/comparar_quicksort.py"
+      ],
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "comparar_datagrama",
+      "type": "shell",
+      "command": "python",
+      "args": [
+        "${workspaceFolder}/comparar_datagrama.py"
       ],
       "group": {
         "kind": "test",
