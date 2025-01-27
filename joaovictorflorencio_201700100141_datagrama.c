@@ -93,34 +93,24 @@ void agruparPacotes(Pacote pacotes[], int n, FILE* arquivoSaida) {
         totalBytes = 0;
         pacotesAgrupados = 0;
 
-        // Agrupar pacotes até que o totalBytes atinja o limite adequado
-        while (i + j < n && totalBytes + pacotes[i + j].tamanho <= totalBytes + pacotes[i + j].tamanho) {
+        // Agrupar pacotes até que o totalBytes atinja um limite de 16 bytes
+        while (i + j < n && totalBytes + pacotes[i + j].tamanho <= 16) {
             totalBytes += pacotes[i + j].tamanho;
             j++;
             pacotesAgrupados++;
         }
 
-        // Caso o último pacote ultrapasse o limite, mova-o para o próximo agrupamento
-        if (i + j < n && totalBytes + pacotes[i + j].tamanho > totalBytes + pacotes[i + j].tamanho) {
-            fprintf(arquivoSaida, "|");  // Adiciona o delimitador correto
-            for (int k = i + j; k < n; k++) {
-                // Imprime pacotes restantes após o agrupamento anterior
-                for (int l = 0; l < pacotes[k].tamanho; l++) {
-                    fprintf(arquivoSaida, "%02X", pacotes[k].dados[l]);
-                    if (l < pacotes[k].tamanho - 1) {
-                        fprintf(arquivoSaida, ",");
-                    }
-                }
-                fprintf(arquivoSaida, "|");
-            }
-        } else {
-            // Imprime os pacotes agrupados com a adição do delimitador final
-            imprimirPacotes(pacotes + i, pacotesAgrupados, arquivoSaida, 1);
-            i += pacotesAgrupados;
+        // Verifica se a soma dos pacotes ultrapassaria 16 bytes
+        if (totalBytes > 16) {
+            pacotesAgrupados--;  // Retira o último pacote do agrupamento
+            totalBytes -= pacotes[i + j - 1].tamanho;
         }
+
+        // Imprime os pacotes agrupados com a adição do delimitador final
+        imprimirPacotes(pacotes + i, pacotesAgrupados, arquivoSaida, 1);
+        i += pacotesAgrupados;
     }
 }
-
 
 int main(int argc, char* argv[]) {
     if (argc != 3) {
