@@ -1,217 +1,109 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
+#include <string.h>
 
-// Definindo o tamanho máximo dos vetores
-#define MAX_TAM 1000
+typedef struct {
+    int numPacote;
+    int tamanho;
+    int* dados;
+} Pacote;
 
-// Função de troca
-void troca(int* a, int* b) {
-    int temp = *a;
-    *a = *b;
-    *b = temp;
+// Função para realizar o Heapsort
+void heapify(Pacote pacotes[], int n, int i) {
+    int maior = i;
+    int esquerda = 2 * i + 1;
+    int direita = 2 * i + 2;
+
+    if (esquerda < n && pacotes[esquerda].numPacote > pacotes[maior].numPacote) {
+        maior = esquerda;
+    }
+
+    if (direita < n && pacotes[direita].numPacote > pacotes[maior].numPacote) {
+        maior = direita;
+    }
+
+    if (maior != i) {
+        Pacote temp = pacotes[i];
+        pacotes[i] = pacotes[maior];
+        pacotes[maior] = temp;
+
+        heapify(pacotes, n, maior);
+    }
 }
 
-// Função Lomuto Padrão
-int particionaLP(int arr[], int baixo, int alto, int* trocas, int* chamadas) {
-    int pivo = arr[alto];
-    int i = baixo - 1;
-    for (int j = baixo; j < alto; j++) {
-        if (arr[j] <= pivo) {
-            i++;
-            troca(&arr[i], &arr[j]);
-            (*trocas)++;
+void heapsort(Pacote pacotes[], int n) {
+    for (int i = n / 2 - 1; i >= 0; i--) {
+        heapify(pacotes, n, i);
+    }
+
+    for (int i = n - 1; i > 0; i--) {
+        Pacote temp = pacotes[0];
+        pacotes[0] = pacotes[i];
+        pacotes[i] = temp;
+
+        heapify(pacotes, i, 0);
+    }
+}
+
+void lerPacotes(FILE* arquivoEntrada, Pacote pacotes[], int* totalPacotes, int pacotesPorLeitura) {
+    fscanf(arquivoEntrada, "%d %d", totalPacotes, &pacotesPorLeitura);
+
+    for (int i = 0; i < *totalPacotes; i++) {
+        fscanf(arquivoEntrada, "%d %d", &pacotes[i].numPacote, &pacotes[i].tamanho);
+        pacotes[i].dados = (int*)malloc(pacotes[i].tamanho * sizeof(int));
+
+        for (int j = 0; j < pacotes[i].tamanho; j++) {
+            fscanf(arquivoEntrada, "%X", &pacotes[i].dados[j]);
         }
     }
-    troca(&arr[i + 1], &arr[alto]);
-    (*trocas)++;
-    return i + 1;
 }
 
-void quicksortLP(int arr[], int baixo, int alto, int* trocas, int* chamadas) {
-    (*chamadas)++;
-    if (baixo < alto) {
-        int pivo = particionaLP(arr, baixo, alto, trocas, chamadas);
-        quicksortLP(arr, baixo, pivo - 1, trocas, chamadas);
-        quicksortLP(arr, pivo + 1, alto, trocas, chamadas);
-    }
-}
-
-// Função Lomuto por Mediana de 3
-int particionaLM(int arr[], int baixo, int alto, int* trocas, int* chamadas) {
-    int meio = baixo + (alto - baixo) / 2;
-    // Mediana de 3: baixo, meio, alto
-    if (arr[baixo] > arr[meio]) troca(&arr[baixo], &arr[meio]);
-    if (arr[meio] > arr[alto]) troca(&arr[meio], &arr[alto]);
-    if (arr[baixo] > arr[meio]) troca(&arr[baixo], &arr[meio]);
-
-    int pivo = arr[meio];
-    troca(&arr[meio], &arr[alto]);
-
-    int i = baixo - 1;
-    for (int j = baixo; j < alto; j++) {
-        if (arr[j] <= pivo) {
-            i++;
-            troca(&arr[i], &arr[j]);
-            (*trocas)++;
-        }
-    }
-    troca(&arr[i + 1], &arr[alto]);
-    (*trocas)++;
-    return i + 1;
-}
-
-void quicksortLM(int arr[], int baixo, int alto, int* trocas, int* chamadas) {
-    (*chamadas)++;
-    if (baixo < alto) {
-        int pivo = particionaLM(arr, baixo, alto, trocas, chamadas);
-        quicksortLM(arr, baixo, pivo - 1, trocas, chamadas);
-        quicksortLM(arr, pivo + 1, alto, trocas, chamadas);
-    }
-}
-
-// Função Lomuto por Pivô Aleatório
-int particionaLA(int arr[], int baixo, int alto, int* trocas, int* chamadas) {
-    int pivoIndice = baixo + rand() % (alto - baixo + 1);
-    troca(&arr[alto], &arr[pivoIndice]);
-    return particionaLP(arr, baixo, alto, trocas, chamadas);
-}
-
-void quicksortLA(int arr[], int baixo, int alto, int* trocas, int* chamadas) {
-    (*chamadas)++;
-    if (baixo < alto) {
-        int pivo = particionaLA(arr, baixo, alto, trocas, chamadas);
-        quicksortLA(arr, baixo, pivo - 1, trocas, chamadas);
-        quicksortLA(arr, pivo + 1, alto, trocas, chamadas);
-    }
-}
-
-// Função Hoare Padrão
-int particionaHP(int arr[], int baixo, int alto, int* trocas, int* chamadas) {
-    int pivo = arr[baixo];
-    int i = baixo - 1;
-    int j = alto + 1;
-    while (1) {
-        do { i++; } while (arr[i] < pivo);
-        do { j--; } while (arr[j] > pivo);
-        if (i >= j) return j;
-        troca(&arr[i], &arr[j]);
-        (*trocas)++;
-    }
-}
-
-void quicksortHP(int arr[], int baixo, int alto, int* trocas, int* chamadas) {
-    (*chamadas)++;
-    if (baixo < alto) {
-        int pivo = particionaHP(arr, baixo, alto, trocas, chamadas);
-        quicksortHP(arr, baixo, pivo, trocas, chamadas);
-        quicksortHP(arr, pivo + 1, alto, trocas, chamadas);
-    }
-}
-
-// Função Hoare por Mediana de 3
-int particionaHM(int arr[], int baixo, int alto, int* trocas, int* chamadas) {
-    int meio = baixo + (alto - baixo) / 2;
-    // Mediana de 3: baixo, meio, alto
-    if (arr[baixo] > arr[meio]) troca(&arr[baixo], &arr[meio]);
-    if (arr[meio] > arr[alto]) troca(&arr[meio], &arr[alto]);
-    if (arr[baixo] > arr[meio]) troca(&arr[baixo], &arr[meio]);
-
-    int pivo = arr[meio];
-    troca(&arr[meio], &arr[alto]);
-
-    int i = baixo - 1;
-    for (int j = baixo; j < alto; j++) {
-        if (arr[j] <= pivo) {
-            i++;
-            troca(&arr[i], &arr[j]);
-            (*trocas)++;
-        }
-    }
-    troca(&arr[i + 1], &arr[alto]);
-    (*trocas)++;
-    return i + 1;
-}
-
-void quicksortHM(int arr[], int baixo, int alto, int* trocas, int* chamadas) {
-    (*chamadas)++;
-    if (baixo < alto) {
-        int pivo = particionaHM(arr, baixo, alto, trocas, chamadas);
-        quicksortHM(arr, baixo, pivo - 1, trocas, chamadas);
-        quicksortHM(arr, pivo + 1, alto, trocas, chamadas);
-    }
-}
-
-// Função Hoare por Pivô Aleatório
-int particionaHA(int arr[], int baixo, int alto, int* trocas, int* chamadas) {
-    int pivoIndice = baixo + rand() % (alto - baixo + 1);
-    troca(&arr[alto], &arr[pivoIndice]);
-    return particionaHP(arr, baixo, alto, trocas, chamadas);
-}
-
-void quicksortHA(int arr[], int baixo, int alto, int* trocas, int* chamadas) {
-    (*chamadas)++;
-    if (baixo < alto) {
-        int pivo = particionaHA(arr, baixo, alto, trocas, chamadas);
-        quicksortHA(arr, baixo, pivo - 1, trocas, chamadas);
-        quicksortHA(arr, pivo + 1, alto, trocas, chamadas);
-    }
-}
-
-// Função principal
-int main(int argc, char* argv[]) {
-    // Abrindo arquivos
-    FILE* input = fopen(argv[1], "r");
-    FILE* output = fopen(argv[2], "w");
-
-    // Verificando se os arquivos foram abertos corretamente
-    if (!input || !output) {
-        fprintf(stderr, "Erro ao abrir arquivos\n");
-        return 1;
-    }
-
-    int n;
-    fscanf(input, "%d", &n);
-
+void imprimirPacotes(Pacote pacotes[], int n, FILE* arquivoSaida) {
     for (int i = 0; i < n; i++) {
-        int tamanho;
-        fscanf(input, "%d", &tamanho);
-        int arr[MAX_TAM];
-
-        for (int j = 0; j < tamanho; j++) {
-            fscanf(input, "%d", &arr[j]);
+        for (int j = 0; j < pacotes[i].tamanho; j++) {
+            fprintf(arquivoSaida, "%02X", pacotes[i].dados[j]);
+            if (j < pacotes[i].tamanho - 1) {
+                fprintf(arquivoSaida, ",");
+            }
         }
+        fprintf(arquivoSaida, "|");
+    }
+    fprintf(arquivoSaida, "\n");
+}
 
-        int trocasLP = 0, chamadasLP = 0;
-        int trocasHP = 0, chamadasHP = 0;
-        int trocasLM = 0, chamadasLM = 0;
-        int trocasHM = 0, chamadasHM = 0;
-        int trocasHA = 0, chamadasHA = 0;
-        int trocasLA = 0, chamadasLA = 0;
-
-        // Chamada das funções de ordenação
-        quicksortLP(arr, 0, tamanho - 1, &trocasLP, &chamadasLP);
-        quicksortHP(arr, 0, tamanho - 1, &trocasHP, &chamadasHP);
-        quicksortLM(arr, 0, tamanho - 1, &trocasLM, &chamadasLM);
-        quicksortHM(arr, 0, tamanho - 1, &trocasHM, &chamadasHM);
-        quicksortHA(arr, 0, tamanho - 1, &trocasHA, &chamadasHA);
-        quicksortLA(arr, 0, tamanho - 1, &trocasLA, &chamadasLA);
-
-        // Escrevendo a saída
-        fprintf(output, "%d:N(%d),LP(%d),HP(%d),LM(%d),HM(%d),HA(%d),LA(%d)\n",
-                i, tamanho,
-                trocasLP + chamadasLP, // Soma de trocas e chamadas para Lomuto Padrão
-                trocasHP + chamadasHP, // Soma de trocas e chamadas para Hoare Padrão
-                trocasLM + chamadasLM, // Soma de trocas e chamadas para Lomuto com Mediana de 3
-                trocasHM + chamadasHM, // Soma de trocas e chamadas para Hoare com Mediana de 3
-                trocasHA + chamadasHA, // Soma de trocas e chamadas para Hoare com Pivô Aleatório
-                trocasLA + chamadasLA  // Soma de trocas e chamadas para Lomuto com Pivô Aleatório
-        );
+int main(int argc, char* argv[]) {
+    if (argc != 3) {
+        fprintf(stderr, "Uso: %s <arquivo_entrada> <arquivo_saida>\n", argv[0]);
+        return EXIT_FAILURE;
     }
 
-    // Fechando arquivos
-    fclose(input);
-    fclose(output);
+    FILE* arquivoEntrada = fopen(argv[1], "r");
+    FILE* arquivoSaida = fopen(argv[2], "w");
 
-    return 0;
+    if (!arquivoEntrada || !arquivoSaida) {
+        perror("Erro ao abrir arquivo");
+        return EXIT_FAILURE;
+    }
+
+    int totalPacotes, pacotesPorLeitura;
+    Pacote* pacotes = (Pacote*)malloc(512 * sizeof(Pacote));  // A alocação pode ser ajustada conforme necessário
+
+    lerPacotes(arquivoEntrada, pacotes, &totalPacotes, pacotesPorLeitura);
+
+    // Processamento dos pacotes em blocos de pacotesPorLeitura
+    for (int i = 0; i < totalPacotes; i += pacotesPorLeitura) {
+        int limite = (i + pacotesPorLeitura <= totalPacotes) ? pacotesPorLeitura : totalPacotes - i;
+
+        // Ordena parcialmente os pacotes
+        heapsort(pacotes + i, limite);
+
+        // Imprime a saída dos pacotes ordenados
+        imprimirPacotes(pacotes + i, limite, arquivoSaida);
+    }
+
+    fclose(arquivoEntrada);
+    fclose(arquivoSaida);
+    free(pacotes);
+
+    return EXIT_SUCCESS;
 }

@@ -2,47 +2,125 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define MAX_PACKETS 1000
-#define MAX_DATA_SIZE 512
-
 typedef struct {
-    int numero;
+    int numPacote;
     int tamanho;
-    unsigned char dados[MAX_DATA_SIZE];
+    int* dados;
 } Pacote;
 
-void swap(Pacote *a, Pacote *b) {
-    Pacote temp = *a;
-    *a = *b;
-    *b = temp;
-}
+// Função para realizar o Heapsort
+void heapify(Pacote pacotes[], int n, int i) {
+    int maior = i;
+    int esquerda = 2 * i + 1;
+    int direita = 2 * i + 2;
 
-void heapify(Pacote arr[], int n, int i) {
-    int largest = i;
-    int left = 2 * i + 1;
-    int right = 2 * i + 2;
+    if (esquerda < n && pacotes[esquerda].numPacote > pacotes[maior].numPacote) {
+        maior = esquerda;
+    }
 
-    if (left < n && arr[left].numero > arr[largest].numero)
-        largest = left;
+    if (direita < n && pacotes[direita].numPacote > pacotes[maior].numPacote) {
+        maior = direita;
+    }
 
-    if (right < n && arr[right].numero > arr[largest].numero)
-        largest = right;
+    if (maior != i) {
+        Pacote temp = pacotes[i];
+        pacotes[i] = pacotes[maior];
+        pacotes[maior] = temp;
 
-    if (largest != i) {
-        swap(&arr[i], &arr[largest]);
-        heapify(arr, n, largest);
+        heapify(pacotes, n, maior);
     }
 }
 
-void heapsort(Pacote arr[], int n) {
-    for (int i = n / 2 - 1; i >= 0; i--)
-        heapify(arr, n, i);
+void heapsort(Pacote pacotes[], int n) {
+    for (int i = n / 2 - 1; i >= 0; i--) {
+        heapify(pacotes, n, i);
+    }
 
     for (int i = n - 1; i > 0; i--) {
-        swap(&arr[0], &arr[i]);
-        heapify(arr, i, 0);
+        Pacote temp = pacotes[0];
+        pacotes[0] = pacotes[i];
+        pacotes[i] = temp;
+
+        heapify(pacotes, i, 0);
     }
 }
+
+void lerPacotes(FILE* arquivoEntrada, Pacote pacotes[], int* totalPacotes, int* pacotesPorLeitura) {
+    fscanf(arquivoEntrada, "%d %d", totalPacotes, pacotesPorLeitura);
+
+    for (int i = 0; i < *totalPacotes; i++) {
+        fscanf(arquivoEntrada, "%d %d", &pacotes[i].numPacote, &pacotes[i].tamanho);
+        pacotes[i].dados = (int*)malloc(pacotes[i].tamanho * sizeof(int));
+
+        for (int j = 0; j < pacotes[i].tamanho; j++) {
+            fscanf(arquivoEntrada, "%X", &pacotes[i].dados[j]);
+        }
+    }
+}
+
+void imprimirPacotes(Pacote pacotes[], int n, FILE* arquivoSaida, int adicionarDelimitadorFinal) {
+    for (int i = 0; i < n; i++) {
+        if (i == 0) {
+            fprintf(arquivoSaida, "|");  // Coloca o delimitador no início da linha
+        } else {
+            fprintf(arquivoSaida, "|");  // Coloca o delimitador entre os pacotes
+        }
+
+        for (int j = 0; j < pacotes[i].tamanho; j++) {
+            fprintf(arquivoSaida, "%02X", pacotes[i].dados[j]);
+            if (j < pacotes[i].tamanho - 1) {
+                fprintf(arquivoSaida, ",");
+            }
+        }
+
+        if (adicionarDelimitadorFinal && i == n - 1) {
+            fprintf(arquivoSaida, "|");  // Adiciona o delimitador final na última linha
+        }
+    }
+}
+
+void agruparPacotes(Pacote pacotes[], int n, FILE* arquivoSaida) {
+    int i = 0;
+    int totalBytes = 0;
+    int pacotesAgrupados = 0;
+
+    while (i < n) {
+        if (pacotesAgrupados > 0) {
+            fprintf(arquivoSaida, "\n");  // Nova linha para cada agrupamento
+        }
+
+        int j = 0;
+        totalBytes = 0;
+        pacotesAgrupados = 0;
+
+        // Agrupar pacotes até que o totalBytes atinja o limite adequado
+        while (i + j < n && totalBytes + pacotes[i + j].tamanho <= totalBytes + pacotes[i + j].tamanho) {
+            totalBytes += pacotes[i + j].tamanho;
+            j++;
+            pacotesAgrupados++;
+        }
+
+        // Caso o último pacote ultrapasse o limite, mova-o para o próximo agrupamento
+        if (i + j < n && totalBytes + pacotes[i + j].tamanho > totalBytes + pacotes[i + j].tamanho) {
+            fprintf(arquivoSaida, "|");  // Adiciona o delimitador correto
+            for (int k = i + j; k < n; k++) {
+                // Imprime pacotes restantes após o agrupamento anterior
+                for (int l = 0; l < pacotes[k].tamanho; l++) {
+                    fprintf(arquivoSaida, "%02X", pacotes[k].dados[l]);
+                    if (l < pacotes[k].tamanho - 1) {
+                        fprintf(arquivoSaida, ",");
+                    }
+                }
+                fprintf(arquivoSaida, "|");
+            }
+        } else {
+            // Imprime os pacotes agrupados com a adição do delimitador final
+            imprimirPacotes(pacotes + i, pacotesAgrupados, arquivoSaida, 1);
+            i += pacotesAgrupados;
+        }
+    }
+}
+
 
 int main(int argc, char* argv[]) {
     if (argc != 3) {
@@ -58,38 +136,28 @@ int main(int argc, char* argv[]) {
         return EXIT_FAILURE;
     }
 
-    int totalPacotes, quantidadePacotes;
-    fscanf(arquivoEntrada, "%d %d", &totalPacotes, &quantidadePacotes);
+    int totalPacotes, pacotesPorLeitura;
+    Pacote* pacotes = (Pacote*)malloc(512 * sizeof(Pacote));  // A alocação pode ser ajustada conforme necessário
 
-    Pacote pacotes[MAX_PACKETS];
-    int numPacotes = 0;
+    lerPacotes(arquivoEntrada, pacotes, &totalPacotes, &pacotesPorLeitura);
 
-    while (fscanf(arquivoEntrada, "%d %d", &pacotes[numPacotes].numero, &pacotes[numPacotes].tamanho) != EOF) {
-        for (int i = 0; i < pacotes[numPacotes].tamanho; i++) {
-            fscanf(arquivoEntrada, "%hhx", &pacotes[numPacotes].dados[i]);
-        }
-        numPacotes++;
-    }
+    for (int i = 0; i < totalPacotes; i += pacotesPorLeitura) {
+        int limite = (i + pacotesPorLeitura <= totalPacotes) ? pacotesPorLeitura : totalPacotes - i;
 
-    heapsort(pacotes, numPacotes);
+        // Ordena parcialmente os pacotes
+        heapsort(pacotes + i, limite);
 
-    for (int i = 0; i < numPacotes; i++) {
-        fprintf(arquivoSaida, "|");
-        for (int j = 0; j < pacotes[i].tamanho; j++) {
-            fprintf(arquivoSaida, "%02X", pacotes[i].dados[j]);
-            if (j < pacotes[i].tamanho - 1) {
-                fprintf(arquivoSaida, ",");
-            }
-        }
-        fprintf(arquivoSaida, "|");
-
-        // Adiciona uma quebra de linha após cada bloco de 'quantidadePacotes'
-        if ((i + 1) % quantidadePacotes == 0 && (i + 1) != numPacotes) {
+        // Imprime a saída dos pacotes ordenados
+        if (i > 0) {
             fprintf(arquivoSaida, "\n");
         }
+
+        agruparPacotes(pacotes + i, limite, arquivoSaida);
     }
 
     fclose(arquivoEntrada);
     fclose(arquivoSaida);
+    free(pacotes);
+
     return EXIT_SUCCESS;
 }

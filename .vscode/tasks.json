@@ -53,13 +53,13 @@
       "type": "shell",
       "command": "python",
       "args": [
-        "${workspaceFolder}/comparar_datagrama.py"
+        "C:\\Users\\Pichau\\Codigos\\Projetos UFS\\PAA\\compara_datagrama.py"
       ],
       "group": {
         "kind": "test",
         "isDefault": true
       },
       "problemMatcher": []
-    }
+    }    
   ]
 }

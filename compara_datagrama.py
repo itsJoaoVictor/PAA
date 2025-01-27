@@ -1,63 +1,44 @@
-import re
+import os
 
-# Caminhos dos arquivos
-arquivo1 = r"C:\Users\Pichau\Codigos\Projetos UFS\PAA\output\datagrama.output"
-arquivo2 = r"C:\Users\Pichau\Codigos\Projetos UFS\PAA\datagramaesperado.output"
+def ler_arquivo(caminho):
+    """Lê o conteúdo de um arquivo e retorna uma lista de linhas."""
+    if not os.path.exists(caminho):
+        print(f"Erro: Arquivo '{caminho}' não encontrado.")
+        return None
+    with open(caminho, 'r', encoding='utf-8') as arquivo:
+        return [linha.strip() for linha in arquivo.readlines()]
 
-# Abrir e ler os arquivos
-with open(arquivo1, 'r') as f1, open(arquivo2, 'r') as f2:
-    conteudo1 = f1.readlines()
-    conteudo2 = f2.readlines()
+def comparar_saidas(arquivo_gerado, arquivo_esperado):
+    """Compara o conteúdo de dois arquivos linha por linha."""
+    gerado = ler_arquivo(arquivo_gerado)
+    esperado = ler_arquivo(arquivo_esperado)
 
-# Função para extrair valores de cada grupo no formato específico
-def extrair_valores_datagrama(linha):
-    padrao = r"\|([^|]*)\|([^|]*)\|"  # Captura grupos dentro dos pares de pipes
-    # Dividir a string capturada por vírgula e remover espaços em branco
-    return [part.strip().split(',') for part in re.split(r"\|\||\|", linha) if part]
+    if gerado is None or esperado is None:
+        return
 
-# Comparar os conteúdos
-if conteudo1 == conteudo2:
-    print("✅ Os arquivos são iguais!")
-else:
-    print("❌ Os arquivos são diferentes!\n")
-    print("Diferenças encontradas:")
-    print("-" * 50)
+    if len(gerado) != len(esperado):
+        print(f"Diferença encontrada: número de linhas diferente.")
+        print(f"Arquivo gerado tem {len(gerado)} linhas e o esperado tem {len(esperado)} linhas.")
+        return
 
-    for i, (linha1, linha2) in enumerate(zip(conteudo1, conteudo2)):
-        valores1 = extrair_valores_datagrama(linha1.strip())
-        valores2 = extrair_valores_datagrama(linha2.strip())
-        
-        if valores1 == valores2:
-            print(f"✅ Linha {i}: Todos os valores estão corretos.")
-        else:
-            print(f"❌ Linha {i}: Diferenças detectadas.")
-            
-            # Comparar cada grupo individualmente
-            for j, (bloco1, bloco2) in enumerate(zip(valores1, valores2)):
-                for valor1, valor2 in zip(bloco1, bloco2):
-                    if valor1 == valor2:
-                        print(f"   ✅ {valor1}")
-                    else:
-                        print(f"   ❌ {valor1} ➡️ {valor2}")
+    diferencas = []
+    for i, (linha_gerada, linha_esperada) in enumerate(zip(gerado, esperado)):
+        if linha_gerada != linha_esperada:
+            diferencas.append((i + 1, linha_gerada, linha_esperada))
 
-        # Verificar ordenação dentro da linha 1 (saída gerada)
-        valores_lista1 = sum(valores1, [])
-        if valores_lista1 != sorted(valores_lista1):
-            print(f"   ⚠️ Linha {i} (arquivo gerado): Valores fora de ordem! {valores_lista1}")
+    if not diferencas:
+        print("Os arquivos são idênticos.")
+    else:
+        print("Diferenças encontradas:")
+        for linha, gerado, esperado in diferencas:
+            print(f"Linha {linha}:")
+            print(f"  Gerado:  {gerado}")
+            print(f"  Esperado: {esperado}")
 
-        # Verificar ordenação dentro da linha 2 (saída esperada)
-        valores_lista2 = sum(valores2, [])
-        if valores_lista2 != sorted(valores_lista2):
-            print(f"   ⚠️ Linha {i} (arquivo esperado): Valores fora de ordem! {valores_lista2}")
+if __name__ == "__main__":
+    # Caminhos para os arquivos
+    arquivo_gerado = r"C:\Users\Pichau\Codigos\Projetos UFS\PAA\output\datagrama.output"
+    arquivo_esperado = r"C:\Users\Pichau\Codigos\Projetos UFS\PAA\datagramaesperado.output"
 
-    # Para o caso de arquivos com mais linhas
-    if len(conteudo1) > len(conteudo2):
-        print("\n⚠️ Linhas extras no arquivo gerado:")
-        for linha in conteudo1[len(conteudo2):]:
-            print(f"   {linha.strip()}")
-
-    if len(conteudo2) > len(conteudo1):
-        print("\n⚠️ Linhas extras no arquivo esperado:")
-        for linha in conteudo2[len(conteudo1):]:
-            print(f"   {linha.strip()}")
-
+    # Comparar os arquivos
+    comparar_saidas(arquivo_gerado, arquivo_esperado)
