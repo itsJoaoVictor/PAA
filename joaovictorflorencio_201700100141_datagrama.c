@@ -8,7 +8,6 @@ typedef struct {
     int* dados;
 } Pacote;
 
-// Função para realizar o Heapsort
 void heapify(Pacote pacotes[], int n, int i) {
     int maior = i;
     int esquerda = 2 * i + 1;
@@ -58,85 +57,6 @@ void lerPacotes(FILE* arquivoEntrada, Pacote pacotes[], int* totalPacotes, int* 
     }
 }
 
-void imprimirPacotes(Pacote pacotes[], int n, FILE* arquivoSaida) {
-    for (int i = 0; i < n; i++) {
-        if (i > 0) {
-            fprintf(arquivoSaida, "|");
-        }
-
-        for (int j = 0; j < pacotes[i].tamanho; j++) {
-            fprintf(arquivoSaida, "%02X", pacotes[i].dados[j]);
-            if (j < pacotes[i].tamanho - 1) {
-                fprintf(arquivoSaida, ",");
-            }
-        }
-    }
-}
-
-void agruparPacotes(Pacote pacotes[], int n, int pacotesPorLeitura, FILE* arquivoSaida) {
-    int i = 0;
-    int ultimoNumPacote = pacotes[0].numPacote; // Número do primeiro pacote
-    int pacotesAgrupados = 0; // Contador de pacotes agrupados na linha
-    int pacotesForaDeOrdem = 0; // Contador de pacotes fora de ordem
-    Pacote pacotesFora[n]; // Armazena pacotes fora de sequência
-
-    while (i < n) {
-        fprintf(arquivoSaida, "|");
-
-        // Agrupar pacotes sequenciais até o limite de pacotesPorLeitura
-        while (i < n && pacotesAgrupados < pacotesPorLeitura) {
-            if (pacotes[i].numPacote == ultimoNumPacote) {
-                // Se o pacote está na sequência, agrupa e avança
-                for (int j = 0; j < pacotes[i].tamanho; j++) {
-                    fprintf(arquivoSaida, "%02X", pacotes[i].dados[j]);
-                    if (j < pacotes[i].tamanho - 1) {
-                        fprintf(arquivoSaida, ",");
-                    }
-                }
-                fprintf(arquivoSaida, "|");
-                pacotesAgrupados++; // Aumenta o contador de pacotes agrupados
-                ultimoNumPacote++; // Avança para o próximo número de pacote
-                i++; // Avança para o próximo pacote
-            } else {
-                // Se o pacote não está na sequência, armazena ele para agrupamento posterior
-                pacotesFora[pacotesForaDeOrdem] = pacotes[i];
-                pacotesForaDeOrdem++; // Incrementa o contador de pacotes fora de ordem
-                i++; // Avança para o próximo pacote
-            }
-        }
-
-        // Se houver pacotes fora de ordem, inclui eles no próximo agrupamento
-        if (pacotesForaDeOrdem > 0) {
-            // Agrupar pacotes fora de ordem que podem ser agrupados com pacotes da sequência
-            while (pacotesForaDeOrdem > 0 && pacotesAgrupados < pacotesPorLeitura) {
-                for (int j = 0; j < pacotesForaDeOrdem; j++) {
-                    if (pacotesFora[j].numPacote == ultimoNumPacote) {
-                        // Se o pacote está na sequência, agrupa
-                        for (int k = 0; k < pacotesFora[j].tamanho; k++) {
-                            fprintf(arquivoSaida, "%02X", pacotesFora[j].dados[k]);
-                            if (k < pacotesFora[j].tamanho - 1) {
-                                fprintf(arquivoSaida, ",");
-                            }
-                        }
-                        fprintf(arquivoSaida, "|");
-                        pacotesAgrupados++; // Aumenta o contador de pacotes agrupados
-                        ultimoNumPacote++; // Avança para o próximo número de pacote
-                        pacotesFora[j] = pacotesFora[pacotesForaDeOrdem - 1]; // Substitui o pacote processado pelo último
-                        pacotesForaDeOrdem--; // Diminui o contador de pacotes fora de ordem
-                        j--; // Revisa o pacote recém-movido
-                    }
-                }
-            }
-        }
-
-        // Se algum pacote foi agrupado, pula para a próxima linha
-        if (pacotesAgrupados > 0) {
-            fprintf(arquivoSaida, "\n");
-            pacotesAgrupados = 0; // Reseta o contador para o próximo agrupamento
-        }
-    }
-}
-
 int main(int argc, char* argv[]) {
     if (argc != 3) {
         fprintf(stderr, "Uso: %s <arquivo_entrada> <arquivo_saida>\n", argv[0]);
@@ -152,19 +72,83 @@ int main(int argc, char* argv[]) {
     }
 
     int totalPacotes, pacotesPorLeitura;
-    Pacote* pacotes = (Pacote*)malloc(512 * sizeof(Pacote));  // A alocação pode ser ajustada conforme necessário
+    Pacote* pacotes = (Pacote*)malloc(512 * sizeof(Pacote));
 
     lerPacotes(arquivoEntrada, pacotes, &totalPacotes, &pacotesPorLeitura);
 
-    // Ordenar os pacotes pela numPacote
-    heapsort(pacotes, totalPacotes);
+    int next_expected = 0;
+    Pacote* buffer = NULL;
+    int buffer_size = 0;
 
-    // Agrupar pacotes conforme o limite
-    agruparPacotes(pacotes, totalPacotes, pacotesPorLeitura, arquivoSaida);
+    for (int i = 0; i < totalPacotes; i += pacotesPorLeitura) {
+        int batch_size = pacotesPorLeitura;
+        if (i + batch_size > totalPacotes) {
+            batch_size = totalPacotes - i;
+        }
+
+        // Adiciona o lote atual ao buffer
+        for (int j = 0; j < batch_size; j++) {
+            Pacote p = pacotes[i + j];
+            buffer = realloc(buffer, (buffer_size + 1) * sizeof(Pacote));
+            buffer[buffer_size] = p;
+            buffer_size++;
+        }
+
+        // Ordena o buffer pelo número do pacote
+        heapsort(buffer, buffer_size);
+
+        // Encontra pacotes contíguos a partir do next_expected
+        int current_expected = next_expected;
+        int output_count = 0;
+        for (int k = 0; k < buffer_size; k++) {
+            if (buffer[k].numPacote == current_expected) {
+                output_count++;
+                current_expected++;
+            } else if (buffer[k].numPacote > current_expected) {
+                break;
+            }
+        }
+
+        if (output_count > 0) {
+            // Escreve os pacotes de saída
+            fprintf(arquivoSaida, "|");
+            for (int k = 0; k < output_count; k++) {
+                Pacote p = buffer[k];
+                for (int j = 0; j < p.tamanho; j++) {
+                    fprintf(arquivoSaida, "%02X", p.dados[j]);
+                    if (j < p.tamanho - 1) {
+                        fprintf(arquivoSaida, ",");
+                    }
+                }
+                if (k < output_count - 1) {
+                    fprintf(arquivoSaida, "|");
+                }
+            }
+            fprintf(arquivoSaida, "|\n");
+
+            // Remove os pacotes processados do buffer
+            int new_buffer_size = buffer_size - output_count;
+            for (int k = 0; k < new_buffer_size; k++) {
+                buffer[k] = buffer[k + output_count];
+            }
+            buffer_size = new_buffer_size;
+            buffer = realloc(buffer, new_buffer_size * sizeof(Pacote));
+
+            // Atualiza o próximo número esperado
+            next_expected = current_expected;
+        }
+    }
+
+    free(buffer);
+
+    // Libera a memória alocada para os dados dos pacotes
+    for (int i = 0; i < totalPacotes; i++) {
+        free(pacotes[i].dados);
+    }
+    free(pacotes);
 
     fclose(arquivoEntrada);
     fclose(arquivoSaida);
-    free(pacotes);
 
     return EXIT_SUCCESS;
 }
