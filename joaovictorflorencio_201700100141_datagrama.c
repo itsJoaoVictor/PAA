@@ -124,7 +124,14 @@ int main(int argc, char* argv[]) {
                     fprintf(arquivoSaida, "|");
                 }
             }
-            fprintf(arquivoSaida, "|\n");
+            if (i + pacotesPorLeitura < totalPacotes)
+            {
+                fprintf(arquivoSaida, "|\n");
+            }
+            else
+            {
+                fprintf(arquivoSaida, "|");
+            }
 
             // Remove os pacotes processados do buffer
             int new_buffer_size = buffer_size - output_count;
