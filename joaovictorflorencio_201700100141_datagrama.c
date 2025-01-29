@@ -58,12 +58,10 @@ void lerPacotes(FILE* arquivoEntrada, Pacote pacotes[], int* totalPacotes, int* 
     }
 }
 
-void imprimirPacotes(Pacote pacotes[], int n, FILE* arquivoSaida, int adicionarDelimitadorFinal) {
+void imprimirPacotes(Pacote pacotes[], int n, FILE* arquivoSaida) {
     for (int i = 0; i < n; i++) {
-        if (i == 0) {
-            fprintf(arquivoSaida, "|");  // Coloca o delimitador no início da linha
-        } else {
-            fprintf(arquivoSaida, "|");  // Coloca o delimitador entre os pacotes
+        if (i > 0) {
+            fprintf(arquivoSaida, "|");
         }
 
         for (int j = 0; j < pacotes[i].tamanho; j++) {
@@ -72,43 +70,70 @@ void imprimirPacotes(Pacote pacotes[], int n, FILE* arquivoSaida, int adicionarD
                 fprintf(arquivoSaida, ",");
             }
         }
-
-        if (adicionarDelimitadorFinal && i == n - 1) {
-            fprintf(arquivoSaida, "|");  // Adiciona o delimitador final na última linha
-        }
     }
 }
 
-void agruparPacotes(Pacote pacotes[], int n, FILE* arquivoSaida) {
+void agruparPacotes(Pacote pacotes[], int n, int pacotesPorLeitura, FILE* arquivoSaida) {
     int i = 0;
-    int totalBytes = 0;
-    int pacotesAgrupados = 0;
+    int ultimoNumPacote = pacotes[0].numPacote; // Número do primeiro pacote
+    int pacotesAgrupados = 0; // Contador de pacotes agrupados na linha
+    int pacotesForaDeOrdem = 0; // Contador de pacotes fora de ordem
+    Pacote pacotesFora[n]; // Armazena pacotes fora de sequência
 
     while (i < n) {
+        fprintf(arquivoSaida, "|");
+
+        // Agrupar pacotes sequenciais até o limite de pacotesPorLeitura
+        while (i < n && pacotesAgrupados < pacotesPorLeitura) {
+            if (pacotes[i].numPacote == ultimoNumPacote) {
+                // Se o pacote está na sequência, agrupa e avança
+                for (int j = 0; j < pacotes[i].tamanho; j++) {
+                    fprintf(arquivoSaida, "%02X", pacotes[i].dados[j]);
+                    if (j < pacotes[i].tamanho - 1) {
+                        fprintf(arquivoSaida, ",");
+                    }
+                }
+                fprintf(arquivoSaida, "|");
+                pacotesAgrupados++; // Aumenta o contador de pacotes agrupados
+                ultimoNumPacote++; // Avança para o próximo número de pacote
+                i++; // Avança para o próximo pacote
+            } else {
+                // Se o pacote não está na sequência, armazena ele para agrupamento posterior
+                pacotesFora[pacotesForaDeOrdem] = pacotes[i];
+                pacotesForaDeOrdem++; // Incrementa o contador de pacotes fora de ordem
+                i++; // Avança para o próximo pacote
+            }
+        }
+
+        // Se houver pacotes fora de ordem, inclui eles no próximo agrupamento
+        if (pacotesForaDeOrdem > 0) {
+            // Agrupar pacotes fora de ordem que podem ser agrupados com pacotes da sequência
+            while (pacotesForaDeOrdem > 0 && pacotesAgrupados < pacotesPorLeitura) {
+                for (int j = 0; j < pacotesForaDeOrdem; j++) {
+                    if (pacotesFora[j].numPacote == ultimoNumPacote) {
+                        // Se o pacote está na sequência, agrupa
+                        for (int k = 0; k < pacotesFora[j].tamanho; k++) {
+                            fprintf(arquivoSaida, "%02X", pacotesFora[j].dados[k]);
+                            if (k < pacotesFora[j].tamanho - 1) {
+                                fprintf(arquivoSaida, ",");
+                            }
+                        }
+                        fprintf(arquivoSaida, "|");
+                        pacotesAgrupados++; // Aumenta o contador de pacotes agrupados
+                        ultimoNumPacote++; // Avança para o próximo número de pacote
+                        pacotesFora[j] = pacotesFora[pacotesForaDeOrdem - 1]; // Substitui o pacote processado pelo último
+                        pacotesForaDeOrdem--; // Diminui o contador de pacotes fora de ordem
+                        j--; // Revisa o pacote recém-movido
+                    }
+                }
+            }
+        }
+
+        // Se algum pacote foi agrupado, pula para a próxima linha
         if (pacotesAgrupados > 0) {
-            fprintf(arquivoSaida, "\n");  // Nova linha para cada agrupamento
+            fprintf(arquivoSaida, "\n");
+            pacotesAgrupados = 0; // Reseta o contador para o próximo agrupamento
         }
-
-        int j = 0;
-        totalBytes = 0;
-        pacotesAgrupados = 0;
-
-        // Agrupar pacotes até que o totalBytes atinja um limite de 16 bytes
-        while (i + j < n && totalBytes + pacotes[i + j].tamanho <= 16) {
-            totalBytes += pacotes[i + j].tamanho;
-            j++;
-            pacotesAgrupados++;
-        }
-
-        // Verifica se a soma dos pacotes ultrapassaria 16 bytes
-        if (totalBytes > 16) {
-            pacotesAgrupados--;  // Retira o último pacote do agrupamento
-            totalBytes -= pacotes[i + j - 1].tamanho;
-        }
-
-        // Imprime os pacotes agrupados com a adição do delimitador final
-        imprimirPacotes(pacotes + i, pacotesAgrupados, arquivoSaida, 1);
-        i += pacotesAgrupados;
     }
 }
 
@@ -131,19 +156,11 @@ int main(int argc, char* argv[]) {
 
     lerPacotes(arquivoEntrada, pacotes, &totalPacotes, &pacotesPorLeitura);
 
-    for (int i = 0; i < totalPacotes; i += pacotesPorLeitura) {
-        int limite = (i + pacotesPorLeitura <= totalPacotes) ? pacotesPorLeitura : totalPacotes - i;
+    // Ordenar os pacotes pela numPacote
+    heapsort(pacotes, totalPacotes);
 
-        // Ordena parcialmente os pacotes
-        heapsort(pacotes + i, limite);
-
-        // Imprime a saída dos pacotes ordenados
-        if (i > 0) {
-            fprintf(arquivoSaida, "\n");
-        }
-
-        agruparPacotes(pacotes + i, limite, arquivoSaida);
-    }
+    // Agrupar pacotes conforme o limite
+    agruparPacotes(pacotes, totalPacotes, pacotesPorLeitura, arquivoSaida);
 
     fclose(arquivoEntrada);
     fclose(arquivoSaida);
