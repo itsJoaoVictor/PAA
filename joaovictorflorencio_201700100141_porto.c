@@ -137,7 +137,7 @@ int main(int argc, char* argv[]) {
         if (empresas[i].percentual > 10) {
             int indiceCorrespondente = buscaBinaria(fiscais, quantidadeFiscais, empresas[i].nome);
             if (indiceCorrespondente != -1 && strcmp(empresas[i].nome2, fiscais[indiceCorrespondente].nome2) == 0) {
-                fprintf(arquivoSaida, "%s:%dkg (%d%%)\n", empresas[i].nome, empresas[i].diferenca, empresas[i].percentual);
+                fprintf(arquivoSaida, "%s:%dkg(%d%%)\n", empresas[i].nome, empresas[i].diferenca, empresas[i].percentual);
             }
         }
     }
