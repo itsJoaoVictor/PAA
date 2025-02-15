@@ -1,110 +1,142 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 
 typedef struct {
-    char placa[8];
-    int max_peso;
-    int max_volume;
-} Veiculo;
-
-typedef struct {
-    char codigo[13];
-    int valor;
-    int peso;
+    char code[15];
+    double value;
+    int weight;
     int volume;
-    int usado;
-} Pacote;
+    bool used;
+} Package;
 
-int main(int argc, char* argv[]) {
-    FILE* input = fopen(argv[1], "r");
-    FILE* output = fopen(argv[2], "w");
+typedef struct {
+    char plate[8];
+    int max_weight;
+    int max_volume;
+    int total_packages;
+    int *package_indices;
+    double total_value;
+    int total_weight;
+    int total_volume;
+} Vehicle;
 
-    int n_vehicles;
-    fscanf(input, "%d", &n_vehicles);
-    Veiculo* veiculos = malloc(n_vehicles * sizeof(Veiculo));
-    for (int i = 0; i < n_vehicles; i++) {
-        fscanf(input, "%7s %d %d", veiculos[i].placa, &veiculos[i].max_peso, &veiculos[i].max_volume);
+int main(int argc, char *argv[]) {
+    if (argc < 3) {
+        fprintf(stderr, "Usage: %s input_file output_file\n", argv[0]);
+        return 1;
     }
 
-    int m_packages;
-    fscanf(input, "%d", &m_packages);
-    Pacote* pacotes = malloc(m_packages * sizeof(Pacote));
-    for (int i = 0; i < m_packages; i++) {
-        double valor_double;
-        fscanf(input, "%12s %lf %d %d", pacotes[i].codigo, &valor_double, &pacotes[i].peso, &pacotes[i].volume);
-        pacotes[i].valor = (int)(valor_double * 100 + 0.5);
-        pacotes[i].usado = 0;
+    FILE *input = fopen(argv[1], "r");
+    FILE *output = fopen(argv[2], "w");
+    if (!input || !output) {
+        perror("Failed to open file");
+        return 1;
     }
 
-    for (int v_idx = 0; v_idx < n_vehicles; v_idx++) {
-        Veiculo veiculo = veiculos[v_idx];
-        int max_peso = veiculo.max_peso;
-        int max_volume = veiculo.max_volume;
+    int n;
+    fscanf(input, "%d", &n);
+    Vehicle *vehicles = malloc(n * sizeof(Vehicle));
+    for (int i = 0; i < n; i++) {
+        fscanf(input, "%7s %d %d", vehicles[i].plate, &vehicles[i].max_weight, &vehicles[i].max_volume);
+        vehicles[i].total_packages = 0;
+        vehicles[i].package_indices = NULL;
+        vehicles[i].total_value = 0.0;
+        vehicles[i].total_weight = 0;
+        vehicles[i].total_volume = 0;
+    }
 
-        int* available_indices = malloc(m_packages * sizeof(int));
-        int num_available = 0;
-        for (int i = 0; i < m_packages; i++) {
-            if (pacotes[i].usado) continue;
-            if (pacotes[i].peso > max_peso || pacotes[i].volume > max_volume) continue;
-            available_indices[num_available++] = i;
+    int m;
+    fscanf(input, "%d", &m);
+    Package *packages = malloc(m * sizeof(Package));
+    for (int i = 0; i < m; i++) {
+        fscanf(input, "%14s %lf %d %d", packages[i].code, &packages[i].value, &packages[i].weight, &packages[i].volume);
+        packages[i].used = false;
+    }
+
+    for (int v_idx = 0; v_idx < n; v_idx++) {
+        Vehicle *vehicle = &vehicles[v_idx];
+        int W = vehicle->max_weight;
+        int V = vehicle->max_volume;
+
+        int *feasible = malloc(m * sizeof(int));
+        int feasible_count = 0;
+        for (int i = 0; i < m; i++) {
+            if (!packages[i].used && packages[i].weight <= W && packages[i].volume <= V) {
+                feasible[feasible_count++] = i;
+            }
         }
 
-        if (num_available == 0) {
-            fprintf(output, "[%s]R$0.00,0KG(0%%),0L(0%%)->\n", veiculo.placa);
-            free(available_indices);
+        if (feasible_count == 0) {
+            free(feasible);
             continue;
         }
 
-        int** dp = (int**)malloc((max_peso + 1) * sizeof(int*));
-        for (int w = 0; w <= max_peso; w++) {
-            dp[w] = (int*)calloc(max_volume + 1, sizeof(int));
+        int dp_size = (W + 1) * (V + 1);
+        double *dp = malloc(dp_size * sizeof(double));
+        for (int i = 0; i < dp_size; i++) {
+            dp[i] = -1.0;
         }
+        dp[0] = 0.0;
 
-        for (int i = 0; i < num_available; i++) {
-            int pkg_idx = available_indices[i];
-            Pacote pkg = pacotes[pkg_idx];
-            int pkg_peso = pkg.peso;
-            int pkg_volume = pkg.volume;
-            int pkg_valor = pkg.valor;
+        for (int i = 0; i < feasible_count; i++) {
+            int p_idx = feasible[i];
+            Package *p = &packages[p_idx];
+            int p_weight = p->weight;
+            int p_volume = p->volume;
+            double p_value = p->value;
 
-            for (int w = max_peso; w >= pkg_peso; w--) {
-                for (int v = max_volume; v >= pkg_volume; v--) {
-                    if (dp[w - pkg_peso][v - pkg_volume] + pkg_valor > dp[w][v]) {
-                        dp[w][v] = dp[w - pkg_peso][v - pkg_volume] + pkg_valor;
+            for (int w = W; w >= p_weight; w--) {
+                for (int v = V; v >= p_volume; v--) {
+                    int current = w * (V + 1) + v;
+                    int prev = (w - p_weight) * (V + 1) + (v - p_volume);
+                    if (dp[prev] >= 0 && (dp[prev] + p_value > dp[current])) {
+                        dp[current] = dp[prev] + p_value;
                     }
                 }
             }
         }
 
-        int max_valor = 0;
-        int best_w = 0;
-        int best_v = 0;
-        for (int w = 0; w <= max_peso; w++) {
-            for (int v = 0; v <= max_volume; v++) {
-                if (dp[w][v] > max_valor) {
-                    max_valor = dp[w][v];
-                    best_w = w;
-                    best_v = v;
+        double max_val = -1.0;
+        int max_w = 0;
+        int max_v = 0;
+        for (int w = 0; w <= W; w++) {
+            for (int v = 0; v <= V; v++) {
+                int idx = w * (V + 1) + v;
+                if (dp[idx] > max_val) {
+                    max_val = dp[idx];
+                    max_w = w;
+                    max_v = v;
                 }
             }
         }
 
-        int current_w = best_w;
-        int current_v = best_v;
-        int* selected = malloc(num_available * sizeof(int));
+        if (max_val <= 0.0) {
+            free(dp);
+            free(feasible);
+            continue;
+        }
+
+        int current_w = max_w;
+        int current_v = max_v;
+        int *selected = malloc(feasible_count * sizeof(int));
         int selected_count = 0;
 
-        for (int i = num_available - 1; i >= 0; i--) {
-            int pkg_idx = available_indices[i];
-            Pacote pkg = pacotes[pkg_idx];
-            if (current_w >= pkg.peso && current_v >= pkg.volume) {
-                int prev_w = current_w - pkg.peso;
-                int prev_v = current_v - pkg.volume;
-                if (dp[prev_w][prev_v] + pkg.valor == dp[current_w][current_v]) {
-                    selected[selected_count++] = pkg_idx;
-                    current_w = prev_w;
-                    current_v = prev_v;
+        for (int i = feasible_count - 1; i >= 0; i--) {
+            int p_idx = feasible[i];
+            Package *p = &packages[p_idx];
+            if (p->used) continue;
+
+            int needed_w = current_w - p->weight;
+            int needed_v = current_v - p->volume;
+            if (needed_w >= 0 && needed_v >= 0) {
+                int prev_idx = needed_w * (V + 1) + needed_v;
+                if (dp[prev_idx] >= 0 && (dp[prev_idx] + p->value == dp[current_w * (V + 1) + current_v])) {
+                    selected[selected_count++] = p_idx;
+                    current_w = needed_w;
+                    current_v = needed_v;
+                    p->used = true;
                 }
             }
         }
@@ -115,70 +147,69 @@ int main(int argc, char* argv[]) {
             selected[selected_count - 1 - i] = temp;
         }
 
-        for (int i = 0; i < selected_count; i++) {
-            pacotes[selected[i]].usado = 1;
-        }
-
-        int sum_peso = 0;
-        int sum_volume = 0;
-        for (int i = 0; i < selected_count; i++) {
-            sum_peso += pacotes[selected[i]].peso;
-            sum_volume += pacotes[selected[i]].volume;
-        }
-
-        int percent_peso = 0;
-        if (veiculo.max_peso > 0) {
-            percent_peso = (sum_peso * 100) / veiculo.max_peso;
-        }
-        int percent_volume = 0;
-        if (veiculo.max_volume > 0) {
-            percent_volume = (sum_volume * 100) / veiculo.max_volume;
-        }
-
-        fprintf(output, "[%s]R$%.2f,%dKG(%d%%),%dL(%d%%)->", veiculo.placa, (double)max_valor / 100.0, sum_peso, percent_peso, sum_volume, percent_volume);
-        for (int i = 0; i < selected_count; i++) {
-            if (i > 0) fprintf(output, ",");
-            fprintf(output, "%s", pacotes[selected[i]].codigo);
-        }
-        fprintf(output, "\n");
+        vehicle->package_indices = malloc(selected_count * sizeof(int));
+        memcpy(vehicle->package_indices, selected, selected_count * sizeof(int));
+        vehicle->total_packages = selected_count;
+        vehicle->total_value = max_val;
+        vehicle->total_weight = max_w;
+        vehicle->total_volume = max_v;
 
         free(selected);
-        for (int w = 0; w <= max_peso; w++) {
-            free(dp[w]);
-        }
         free(dp);
-        free(available_indices);
+        free(feasible);
     }
 
-    int pending_count = 0;
-    double pending_valor = 0.0;
-    int pending_peso = 0;
+    for (int i = 0; i < n; i++) {
+        Vehicle *v = &vehicles[i];
+        if (v->total_packages == 0) continue;
+
+        int weight_percent = (int)((v->total_weight * 100.0) / v->max_weight + 0.5);
+        int volume_percent = (int)((v->total_volume * 100.0) / v->max_volume + 0.5);
+        fprintf(output, "[%s]R$%.2lf,%dKG(%d%%),%dL(%d%%)->", v->plate, v->total_value, v->total_weight, weight_percent, v->total_volume, volume_percent);
+
+        for (int j = 0; j < v->total_packages; j++) {
+            if (j > 0) fprintf(output, ",");
+            fprintf(output, "%s", packages[v->package_indices[j]].code);
+        }
+        fprintf(output, "\n");
+    }
+
+    double pending_value = 0.0;
+    int pending_weight = 0;
     int pending_volume = 0;
-    char** pending_codigos = malloc(m_packages * sizeof(char*));
-    for (int i = 0; i < m_packages; i++) {
-        if (!pacotes[i].usado) {
-            pending_valor += (double)pacotes[i].valor / 100.0;
-            pending_peso += pacotes[i].peso;
-            pending_volume += pacotes[i].volume;
-            pending_codigos[pending_count] = pacotes[i].codigo;
+    int pending_count = 0;
+    for (int i = 0; i < m; i++) {
+        if (!packages[i].used) {
+            pending_value += packages[i].value;
+            pending_weight += packages[i].weight;
+            pending_volume += packages[i].volume;
             pending_count++;
         }
     }
 
     if (pending_count > 0) {
-        fprintf(output, "PENDENTE:R$%.2f,%dKG,%dL->", pending_valor, pending_peso, pending_volume);
-        for (int i = 0; i < pending_count; i++) {
-            if (i > 0) fprintf(output, ",");
-            fprintf(output, "%s", pending_codigos[i]);
+        fprintf(output, "PENDENTE:R$%.2lf,%dKG,%dL->", pending_value, pending_weight, pending_volume);
+        int first = 1;
+        for (int i = 0; i < m; i++) {
+            if (!packages[i].used) {
+                if (!first) {
+                    fprintf(output, ",");
+                }
+                fprintf(output, "%s", packages[i].code);
+                first = 0;
+            }
         }
         fprintf(output, "\n");
     }
 
-    free(pending_codigos);
-    free(veiculos);
-    free(pacotes);
+    for (int i = 0; i < n; i++) {
+        free(vehicles[i].package_indices);
+    }
+    free(vehicles);
+    free(packages);
 
     fclose(input);
     fclose(output);
+
     return 0;
 }
