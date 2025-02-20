@@ -1,0 +1,125 @@
+Eu estou fazendo um exercício e preciso de ajude. 
+O enunciado da Questão:
+
+A empresa de biotecnologia Poxim Tech possui um sistema de diagnóstico para doenças genéticas, comparando a sequência de DNA com genes conhecidos
+- A sequência de DNA é composta somente pelos símbolos A, C, G e T para codificação dos genes 
+-Uma doença genética possui até 10 genes associados, cada um deles com sequências de tamanho entre 100 até 1000 símbolos, denotada exclusivamente por letras maiúsculas e números com tamanho entre 4 e 8 caracteres 
+- Para tratar os efeitos da mutação nos genes que alteram sua codificação, é feita a busca por combinações que possuam o tamanho mínimo de subcadeia, com pelo menos 90% de compatibilidade para manifestação da doença
+-No diagnóstico será calculada a probabilidade de manifestação da doença, de acordo com a quantidade de genes detectados na sequência de DNA
+
+
+
+Exemplo de Ilustração 
+Diagnóstico da doença CRTLF4 com genes AATTTGGCCC
+e GGGGGGGGGG DNA: AAAAAAAAAATTTTTTTTTTTGGGGGGGGG
+Tamanho da subcadeia: 3
+AATTTGGCCC : 5 combinações  = 50%
+GGGGGGGGGG : 9 combinações = 90%
+Chance de 50% de ocorrência da doença CRTLF4
+
+
+Exemplo pratico de como o sistema funciona
+Formato do arquivo de entrada
+ [#Tamanho da subcadeia]
+ [B0 . . . BN–1]
+ [#Numero de doenças]
+[Código 0] [#Genes0] [G00] . . . [G0i–1]
+
+.
+.
+.
+[Codigo ´ M–1] [#GenesM–1] [GM–10] . . . [GM–1j–1]
+
+ficaria 
+3
+AAAATTTCGTTAAATTTGAACATAGGGATA
+4
+ABCDE 3 AAA AAT AAAG
+XY1WZ2AB 1 TTTTTTGGGG
+H1N1 4 ACTG AACCGGTT AATAAT AAAAAAAAGA
+HUEBR 1 CATAGGGATT
+
+
+
+Formato do arquivo de saída
+É feita a ordenação estável em ordem decrescente dos
+resultados, utilizando como critério de ordenação a
+probabilidade de ocorrência da doença e fazendo o
+arredondamento dos percentuais para fins de comparação
+
+XY1WZ2AB->100%
+HUEBR->100%
+ABCDE->67%
+H1N1->25%
+
+
+Passo a Passo para Aplicar o KMP:
+Construção da Função de Prefixo (Failure Function):
+
+Para cada gene associado a uma doença, calculamos a função de prefixo. Essa função nos ajuda a entender como as comparações podem ser puladas durante a busca.
+A função de prefixo é uma lista que, para cada posição da string, guarda o tamanho do maior prefixo da substring que é também sufixo. Isso vai nos permitir pular partes da sequência quando uma falha de comparação ocorre.
+Busca no DNA:
+
+Após construir a tabela de prefixo para cada gene, podemos usar a busca KMP para procurar essa sequência dentro do DNA. A busca será realizada da seguinte forma:
+Começamos a comparar o gene com o DNA. Quando ocorre uma falha (ou seja, uma letra do gene não coincide com a do DNA), usamos a tabela de prefixo para "pular" comparações desnecessárias e continuar a busca de maneira eficiente.
+Cálculo da Compatibilidade:
+
+A compatibilidade é calculada pela porcentagem de símbolos correspondentes entre o gene e a sequência de DNA. Caso a correspondência seja de 90% ou mais, consideramos que a doença pode se manifestar.
+Ordenação dos Resultados:
+
+Após calcular a compatibilidade para cada gene de cada doença, ordenamos as doenças pela probabilidade de manifestação, ou seja, pela quantidade de genes detectados com compatibilidade superior a 90%. A ordenação é feita de maneira estável, o que significa que, se dois genes tiverem a mesma probabilidade, a ordem deles no resultado final será mantida como na entrada.
+Arredondamento:
+
+Para fins de comparação e ordenação, os percentuais de compatibilidade são arredondados.
+
+eu pedi uma explicação para meu professor 
+
+eu lembro que ele explicou que
+
+eu vou ter o DNA
+
+AAAATTTCGTTAAATTTGAACATAGGGATA
+
+e o Gene
+TTTTTTGGGG
+
+eu vou pegar [0:2] do gene que seria TTT
+
+e começaria a percorrer no DNA, ele encontra a ocorreia depois do AAAA que vem seguido de TTT
+
+e "eliminaria isso do gene que ficaria TTTGGGG 
+e continuaria a verificação a partir do ultimo ponto que seria CGTTAAATTTGAACATAGGGATA
+
+nisso eu encontraria a ocorrencia TTTG 
+sobrando GGG do gene e AACATAGGGATA do dna
+
+eu tenho a ocorrencia, logo ele tem ocorrencia de 100% por ter encontrado ocorrencia para o gene todo 
+
+
+
+
+Requisitos que devem está presente no Código:
+- Deve ser Feito em C
+- Deve utilizar o Conceito do Busca em cadeias (Knuth-Morris-Pratt)
+- tempo limite de execução não pode ser superior a 1 segundo por isso deve está otimizado para não ocorre timeout nem memory limit exceeded
+- deve se utilizar a Logica:
+// E/S padrao
+#include <stdio.h>
+// Funcao principal
+int main(int argc, char* argv[]) {
+    // Ilustrando uso de argumentos de programa
+    printf("#ARGS = %i\n", argc);
+    printf("PROGRAMA = %s\n", argv[0]);
+    printf("ARG1 = %s, ARG2 = %s\n", argv[1], argv[2]);
+    // Abrindo arquivos
+    FILE* input = fopen(argv[1], "r");
+    FILE* output = fopen(argv[2], "w");
+    //
+    // ...
+    //
+    // Fechando arquivos
+    fclose(input);
+    fclose(output);
+    // Finalizando programa
+    return 0;
+}

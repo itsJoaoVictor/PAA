@@ -21,7 +21,7 @@ typedef struct {
 // Estrutura para armazenar a alocação
 typedef struct {
     Veiculo veiculo;    
-    int pacotes_indices[10]; 
+    int *pacotes_indices; // Usando ponteiro para permitir tamanho dinâmico
     int num_pacotes;    
     float total_valor;  
 } Alocacao;
@@ -62,8 +62,7 @@ int main(int argc, char* argv[]) {
     fscanf(input, "%d", &n_veiculos);
     Veiculo *veiculos = malloc(n_veiculos * sizeof(Veiculo));
     for(int i = 0; i < n_veiculos; i++) {
-        // Corrigido: usa %9s para placa (tamanho 10)
-        fscanf(input, "%9s %f %f", veiculos[i].placa, &veiculos[i].peso_max, &veiculos[i].volume_max);
+        fscanf(input, "%s %f %f", veiculos[i].placa, &veiculos[i].peso_max, &veiculos[i].volume_max);
         veiculos[i].peso_atual = 0;
         veiculos[i].volume_atual = 0;
     }
@@ -72,12 +71,12 @@ int main(int argc, char* argv[]) {
     fscanf(input, "%d", &n_pacotes);
     Pacote *pacotes = malloc(n_pacotes * sizeof(Pacote));
     for(int i = 0; i < n_pacotes; i++) {
-        // Corrigido: usa %19s para codigo (tamanho 20)
-        fscanf(input, "%19s %f %f %f", pacotes[i].codigo, &pacotes[i].valor, &pacotes[i].peso, &pacotes[i].volume);
+        fscanf(input, "%s %f %f %f", pacotes[i].codigo, &pacotes[i].valor, &pacotes[i].peso, &pacotes[i].volume);
         pacotes[i].alocado = 0;
         pacotes[i].input_index = i;
     }
 
+    // Ordena pacotes pela estratégia definida
     qsort(pacotes, n_pacotes, sizeof(Pacote), comparePacote);
 
     Alocacao *alocs = malloc(n_veiculos * sizeof(Alocacao));
@@ -85,11 +84,13 @@ int main(int argc, char* argv[]) {
         alocs[i].veiculo = veiculos[i];
         alocs[i].num_pacotes = 0;
         alocs[i].total_valor = 0;
-        for(int j = 0; j < 10; j++) {
+        alocs[i].pacotes_indices = malloc(n_pacotes * sizeof(int)); // Aloca dinamicamente
+        for(int j = 0; j < n_pacotes; j++) {
             alocs[i].pacotes_indices[j] = -1;
         }
     }
 
+    // Alocação eficiente dos pacotes nos veículos
     for(int i = 0; i < n_veiculos; i++) {
         Veiculo *v = &veiculos[i];
 
@@ -105,8 +106,9 @@ int main(int argc, char* argv[]) {
                         v->volume_atual += pacotes[j].volume;
                         pacotes[j].alocado = 1;
 
-                        alocs[i].pacotes_indices[alocs[i].num_pacotes] = j;
-                        alocs[i].num_pacotes++;
+                        if (alocs[i].num_pacotes < n_pacotes) {
+                            alocs[i].pacotes_indices[alocs[i].num_pacotes++] = j;
+                        }
                         alocs[i].total_valor += pacotes[j].valor;
                         alocou = 1;
 
@@ -117,6 +119,7 @@ int main(int argc, char* argv[]) {
         } while(alocou);
     }
 
+    // Reordenar os pacotes alocados pela ordem de entrada original
     for (int i = 0; i < n_veiculos; i++) {
         for (int a = 0; a < alocs[i].num_pacotes - 1; a++) {
             for (int b = 0; b < alocs[i].num_pacotes - a - 1; b++) {
@@ -129,6 +132,7 @@ int main(int argc, char* argv[]) {
         }
     }
 
+    // Escrever a saída formatada
     for (int i = 0; i < n_veiculos; i++) {
         Veiculo v = veiculos[i];
         Alocacao a = alocs[i];
@@ -145,6 +149,7 @@ int main(int argc, char* argv[]) {
         fprintf(output, "\n");
     }
 
+    // Impressão de pacotes pendentes
     int primeiroPendente = 1;
     for(int i = 0; i < n_pacotes; i++) {
         if(pacotes[i].alocado == 0) {
@@ -165,6 +170,10 @@ int main(int argc, char* argv[]) {
     fclose(output);
     free(veiculos);
     free(pacotes);
+    for (int i = 0; i < n_veiculos; i++) {
+        free(alocs[i].pacotes_indices);  // Libera memória alocada dinamicamente
+    }
     free(alocs);
+
     return 0;
 }

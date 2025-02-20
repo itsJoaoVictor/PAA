@@ -17,6 +17,52 @@
       "problemMatcher": [
         "$gcc"
       ]
+  },
+
+    {
+      "label": "executar_transportadora",
+      "type": "shell",
+      "command": "python",
+      "args": [
+        "C:\\Users\\Pichau\\Codigos\\Projetos UFS\\PAA\\transportadora.py"
+      ],
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+      "problemMatcher": []
+    },
+  {
+      "label": "compilar_sequenciamento",
+      "type": "shell",
+      "command": "gcc",
+      "args": [
+        "joaovictorflorencio_201700100141_sequenciamento.c",
+        "-o",
+        "C:\\Users\\Pichau\\Codigos\\Projetos UFS\\PAA\\output\\joaovictorflorencio_201700100141_sequenciamento.exe"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": [
+        "$gcc"
+      ]
+    },
+
+    {
+      "label": "executar_sequenciamento",
+      "type": "shell",
+      "command": "python",
+      "args": [
+        "C:\\Users\\Pichau\\Codigos\\Projetos UFS\\PAA\\sequenciamento.py"
+      ],
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+      "problemMatcher": []
     }
   ]
 }
+

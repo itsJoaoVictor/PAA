@@ -23,6 +23,33 @@
         }
       ],
       "preLaunchTask": "compilar_transportadora",
-    }    
+      "postDebugTask": "executar_transportadora"
+    },
+
+    {
+      "name": "C Runner: Debug sequenciamento",
+      "type": "cppdbg",
+      "request": "launch",
+      "args": [
+        "sequenciamento.input",
+        "sequenciamento.output"
+      ],
+      "stopAtEntry": false,
+      "externalConsole": true,
+      "cwd": "C:\\Users\\Pichau\\Codigos\\Projetos UFS\\PAA\\output",
+      "program": "C:\\Users\\Pichau\\Codigos\\Projetos UFS\\PAA\\output\\joaovictorflorencio_201700100141_sequenciamento.exe",
+      "MIMode": "gdb",
+      "miDebuggerPath": "C:\\MinGW\\bin\\gdb.exe",
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        }
+      ],
+      "preLaunchTask": "compilar_sequenciamento"
+      ,
+      "postDebugTask": "executar_sequenciamento"
+    }
   ]
 }
