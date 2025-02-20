@@ -2,120 +2,100 @@
 #include <stdlib.h>
 #include <string.h>
 
-void compute_failure(const char *pattern, int pattern_len, int *failure) {
-    failure[0] = 0;
+#define MAX_DNA 10000
+#define MAX_GENES 10
+#define MAX_DOENCAS 100
+
+// Função para calcular o prefixo do KMP
+void calcularPrefixo(char *padrao, int *prefixo, int m) {
     int j = 0;
-    for (int i = 1; i < pattern_len; i++) {
-        while (j > 0 && pattern[i] != pattern[j]) {
-            j = failure[j - 1];
+    prefixo[0] = 0;
+    for (int i = 1; i < m; i++) {
+        while (j > 0 && padrao[i] != padrao[j]) {
+            j = prefixo[j - 1];
         }
-        if (pattern[i] == pattern[j]) {
+        if (padrao[i] == padrao[j]) {
             j++;
         }
-        failure[i] = j;
+        prefixo[i] = j;
     }
 }
 
-int kmp_search(const char *text, const char *pattern, int pattern_len) {
-    int n = strlen(text);
-    int *failure = malloc(pattern_len * sizeof(int));
-    compute_failure(pattern, pattern_len, failure);
-    int j = 0;
+// Função para buscar padrões usando KMP
+int buscarKMP(char *dna, char *gene, int tamanho_subcadeia) {
+    int n = strlen(dna);
+    int m = strlen(gene);
+    int *prefixo = (int *)malloc(m * sizeof(int));
+    calcularPrefixo(gene, prefixo, m);
+
+    int j = 0, correspondencias = 0;
     for (int i = 0; i < n; i++) {
-        while (j > 0 && text[i] != pattern[j]) {
-            j = failure[j - 1];
+        while (j > 0 && dna[i] != gene[j]) {
+            j = prefixo[j - 1];
         }
-        if (text[i] == pattern[j]) {
+        if (dna[i] == gene[j]) {
             j++;
-            if (j == pattern_len) {
-                free(failure);
-                return 1;
-            }
+        }
+        if (j >= tamanho_subcadeia) {
+            correspondencias++;
+            j = prefixo[j - 1];
         }
     }
-    free(failure);
-    return 0;
+    free(prefixo);
+    return correspondencias;
 }
 
-struct Disease {
-    char code[9];
-    int percentage;
-    int original_index;
-};
+// Estrutura para armazenar doenças
+typedef struct {
+    char codigo[20];
+    int ocorrencias;
+    int total_genes;
+} Doenca;
 
-int compare(const void *a, const void *b) {
-    const struct Disease *d1 = (const struct Disease *)a;
-    const struct Disease *d2 = (const struct Disease *)b;
-    if (d1->percentage != d2->percentage) {
-        return d2->percentage - d1->percentage;
-    } else {
-        return d1->original_index - d2->original_index;
-    }
+// Função de comparação para ordenação
+int compararDoencas(const void *a, const void *b) {
+    Doenca *d1 = (Doenca *)a;
+    Doenca *d2 = (Doenca *)b;
+    double p1 = (100.0 * d1->ocorrencias) / d1->total_genes;
+    double p2 = (100.0 * d2->ocorrencias) / d2->total_genes;
+    if (p1 != p2) return (p2 - p1) > 0 ? 1 : -1;
+    return 0;
 }
 
 int main(int argc, char *argv[]) {
     FILE *input = fopen(argv[1], "r");
     FILE *output = fopen(argv[2], "w");
-
-    int K;
-    fscanf(input, "%d", &K);
-
-    char DNA[1000001];
-    fscanf(input, "%s", DNA);
-
-    int M;
-    fscanf(input, "%d", &M);
-
-    struct Disease *diseases = malloc(M * sizeof(struct Disease));
-
-    for (int i = 0; i < M; i++) {
-        char code[9];
-        int num_genes;
-        fscanf(input, "%s %d", code, &num_genes);
-
-        char genes[10][1001];
-        for (int j = 0; j < num_genes; j++) {
-            fscanf(input, "%s", genes[j]);
-        }
-
-        int detected_genes = 0;
-        for (int j = 0; j < num_genes; j++) {
-            char *gene = genes[j];
-            int len_gene = strlen(gene);
-            if (len_gene < K) {
-                continue;
-            }
-            int total_substrings = len_gene - K + 1;
-            int required = (9 * total_substrings + 9) / 10; // Ceiling of 90%
-            int count = 0;
-
-            for (int pos = 0; pos <= len_gene - K; pos++) {
-                char substring[K + 1];
-                strncpy(substring, gene + pos, K);
-                substring[K] = '\0';
-                if (kmp_search(DNA, substring, K)) {
-                    count++;
-                }
-            }
-
-            if (count >= required) {
-                detected_genes++;
+    
+    int tamanho_subcadeia;
+    fscanf(input, "%d", &tamanho_subcadeia);
+    
+    char dna[MAX_DNA];
+    fscanf(input, "%s", dna);
+    
+    int num_doencas;
+    fscanf(input, "%d", &num_doencas);
+    
+    Doenca doencas[MAX_DOENCAS];
+    
+    for (int i = 0; i < num_doencas; i++) {
+        fscanf(input, "%s %d", doencas[i].codigo, &doencas[i].total_genes);
+        doencas[i].ocorrencias = 0;
+        
+        for (int j = 0; j < doencas[i].total_genes; j++) {
+            char gene[1000];
+            fscanf(input, "%s", gene);
+            if (buscarKMP(dna, gene, tamanho_subcadeia) > 0) {
+                doencas[i].ocorrencias++;
             }
         }
-
-        int percentage = (detected_genes * 100 + num_genes / 2) / num_genes; // Arredondamento correto
-        diseases[i].percentage = percentage;
-        strcpy(diseases[i].code, code);
-        diseases[i].original_index = i;
     }
-
-    qsort(diseases, M, sizeof(struct Disease), compare);
-
-    for (int i = 0; i < M; i++) {
-        fprintf(output, "%s->%d%%\n", diseases[i].code, diseases[i].percentage);
+    
+    qsort(doencas, num_doencas, sizeof(Doenca), compararDoencas);
+    
+    for (int i = 0; i < num_doencas; i++) {
+        fprintf(output, "%s->%d%%\n", doencas[i].codigo, (int)((100.0 * doencas[i].ocorrencias) / doencas[i].total_genes));
     }
-
-    free(diseases);
+    
     fclose(input);
     fclose(output);
     return 0;
