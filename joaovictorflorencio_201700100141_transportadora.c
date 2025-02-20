@@ -3,168 +3,183 @@
 #include <string.h>
 #include <math.h>
 
-// Estrutura para Veículo
+#define MAX_PACKAGES 100000
+#define MAX_VEHICLES 100000
+
 typedef struct {
-    char placa[10];       
-    float peso_max, volume_max; 
-    float peso_atual, volume_atual; 
-} Veiculo;
+    char code[14];
+    double value;
+    int weight;
+    int volume;
+    int used;
+    double efficiency;
+} Package;
 
-// Estrutura para Pacote
 typedef struct {
-    char codigo[20];    
-    float valor, peso, volume;  
-    int alocado;  
-    int input_index;  
-} Pacote;
+    char plate[8];
+    int max_weight;
+    int max_volume;
+    Package** packages;
+    int package_count;
+    double total_value;
+    int total_weight;
+    int total_volume;
+} Vehicle;
 
-// Estrutura para armazenar a alocação
-typedef struct {
-    Veiculo veiculo;    
-    int pacotes_indices[10]; 
-    int num_pacotes;    
-    float total_valor;  
-} Alocacao;
-
-// Função de comparação para ordenar pacotes
-int comparePacote(const void *a, const void *b) {
-    Pacote *pa = (Pacote*) a;
-    Pacote *pb = (Pacote*) b;
-
-    if (pb->valor != pa->valor) 
-        return (pb->valor > pa->valor) - (pb->valor < pa->valor);
-
-    double epv_a = pa->valor / sqrt((pa->peso) * (pa->volume));
-    double epv_b = pb->valor / sqrt((pb->peso) * (pb->volume));
-
-    return (epv_b > epv_a) - (epv_b < epv_a);
+// Calcula a eficiência baseada na lógica dada
+double calculateEfficiency(Package* p, int remaining_weight, int remaining_volume) {
+    if (p->weight > remaining_weight || p->volume > remaining_volume) return -1; // Excede limite
+    double weight_ratio = (double)p->weight / remaining_weight;
+    double volume_ratio = (double)p->volume / remaining_volume;
+    return p->value / sqrt(weight_ratio * volume_ratio);
 }
 
-// Função de troca
-void swap(int *a, int *b) {
-    int temp = *a;
-    *a = *b;
-    *b = temp;
+// Função de comparação para a heap (maior eficiência primeiro)
+int comparePackages(const void* a, const void* b) {
+    Package* p1 = *(Package**)a;
+    Package* p2 = *(Package**)b;
+    return (p2->efficiency > p1->efficiency) - (p2->efficiency < p1->efficiency);
+}
+
+// Lê os veículos do arquivo
+void readVehicles(FILE* input, Vehicle** vehicles, int* n_vehicles) {
+    fscanf(input, "%d", n_vehicles);
+    *vehicles = malloc(*n_vehicles * sizeof(Vehicle));
+    for (int i = 0; i < *n_vehicles; i++) {
+        fscanf(input, "%s %d %d", (*vehicles)[i].plate, &(*vehicles)[i].max_weight, &(*vehicles)[i].max_volume);
+        (*vehicles)[i].package_count = 0;
+        (*vehicles)[i].packages = malloc(MAX_PACKAGES * sizeof(Package*));
+        (*vehicles)[i].total_value = 0;
+        (*vehicles)[i].total_weight = 0;
+        (*vehicles)[i].total_volume = 0;
+    }
+}
+
+// Lê os pacotes do arquivo
+void readPackages(FILE* input, Package** packages, int* m_packages) {
+    fscanf(input, "%d", m_packages);
+    *packages = malloc(*m_packages * sizeof(Package));
+    for (int i = 0; i < *m_packages; i++) {
+        fscanf(input, "%s %lf %d %d", (*packages)[i].code, &(*packages)[i].value, &(*packages)[i].weight, &(*packages)[i].volume);
+        (*packages)[i].used = 0;
+    }
+}
+
+// Aloca pacotes nos veículos de forma otimizada
+void allocatePackages(Vehicle* vehicles, int n_vehicles, Package* packages, int m_packages) {
+    Package** packageHeap = malloc(m_packages * sizeof(Package*));
+
+    for (int i = 0; i < n_vehicles; i++) {
+        Vehicle* v = &vehicles[i];
+        int remaining_weight = v->max_weight;
+        int remaining_volume = v->max_volume;
+        int heapSize = 0;
+
+        // Calcula eficiência dos pacotes restantes e insere na heap
+        for (int j = 0; j < m_packages; j++) {
+            if (!packages[j].used) {
+                packages[j].efficiency = calculateEfficiency(&packages[j], remaining_weight, remaining_volume);
+                if (packages[j].efficiency > 0) {
+                    packageHeap[heapSize++] = &packages[j];
+                }
+            }
+        }
+
+        // Ordena pacotes pela eficiência usando quicksort (poderia ser heap para maior eficiência em grande escala)
+        qsort(packageHeap, heapSize, sizeof(Package*), comparePackages);
+
+        // Alocar pacotes no veículo
+        for (int j = 0; j < heapSize; j++) {
+            Package* p = packageHeap[j];
+            if (p->weight <= remaining_weight && p->volume <= remaining_volume) {
+                v->packages[v->package_count++] = p;
+                v->total_value += p->value;
+                v->total_weight += p->weight;
+                v->total_volume += p->volume;
+                remaining_weight -= p->weight;
+                remaining_volume -= p->volume;
+                p->used = 1;
+            }
+        }
+    }
+
+    free(packageHeap);
+}
+
+// Escreve a saída no arquivo
+void writeOutput(FILE* output, Vehicle* vehicles, int n_vehicles, Package* packages, int m_packages) {
+    for (int i = 0; i < n_vehicles; i++) {
+        Vehicle* v = &vehicles[i];
+        int weight_percent = (v->total_weight * 100) / v->max_weight;
+        int volume_percent = (v->total_volume * 100) / v->max_volume;
+        fprintf(output, "[%s]R$%.2lf,%dKG(%d%%),%dL(%d%%)->", v->plate, v->total_value, v->total_weight, weight_percent, v->total_volume, volume_percent);
+        for (int j = 0; j < v->package_count; j++) {
+            if (j > 0) fprintf(output, ",");
+            fprintf(output, "%s", v->packages[j]->code);
+        }
+        fprintf(output, "\n");
+    }
+
+    double pending_value = 0;
+    int pending_weight = 0;
+    int pending_volume = 0;
+    int pending_count = 0;
+    char** pending_codes = malloc(m_packages * sizeof(char*));
+
+    for (int i = 0; i < m_packages; i++) {
+        if (!packages[i].used) {
+            pending_value += packages[i].value;
+            pending_weight += packages[i].weight;
+            pending_volume += packages[i].volume;
+            pending_codes[pending_count++] = packages[i].code;
+        }
+    }
+
+    if (pending_count > 0) {
+        fprintf(output, "PENDENTE:R$%.2lf,%dKG,%dL->", pending_value, pending_weight, pending_volume);
+        for (int i = 0; i < pending_count; i++) {
+            if (i > 0) fprintf(output, ",");
+            fprintf(output, "%s", pending_codes[i]);
+        }
+        fprintf(output, "\n");
+    }
+
+    free(pending_codes);
 }
 
 int main(int argc, char* argv[]) {
-    if(argc < 3) {
-        printf("Uso: %s <arquivo_entrada> <arquivo_saida>\n", argv[0]);
+    if (argc < 3) {
+        fprintf(stderr, "Usage: %s input output\n", argv[0]);
         return 1;
     }
 
     FILE* input = fopen(argv[1], "r");
-    if(!input) { perror("Erro ao abrir arquivo de entrada"); return 1; }
     FILE* output = fopen(argv[2], "w");
-    if(!output) { perror("Erro ao abrir arquivo de saída"); fclose(input); return 1; }
 
-    int n_veiculos;
-    fscanf(input, "%d", &n_veiculos);
-    Veiculo *veiculos = malloc(n_veiculos * sizeof(Veiculo));
-    for(int i = 0; i < n_veiculos; i++) {
-        // Corrigido: usa %9s para placa (tamanho 10)
-        fscanf(input, "%9s %f %f", veiculos[i].placa, &veiculos[i].peso_max, &veiculos[i].volume_max);
-        veiculos[i].peso_atual = 0;
-        veiculos[i].volume_atual = 0;
+    if (!input || !output) {
+        perror("Failed to open file");
+        return 1;
     }
 
-    int n_pacotes;
-    fscanf(input, "%d", &n_pacotes);
-    Pacote *pacotes = malloc(n_pacotes * sizeof(Pacote));
-    for(int i = 0; i < n_pacotes; i++) {
-        // Corrigido: usa %19s para codigo (tamanho 20)
-        fscanf(input, "%19s %f %f %f", pacotes[i].codigo, &pacotes[i].valor, &pacotes[i].peso, &pacotes[i].volume);
-        pacotes[i].alocado = 0;
-        pacotes[i].input_index = i;
+    Vehicle* vehicles = NULL;
+    int n_vehicles = 0;
+    readVehicles(input, &vehicles, &n_vehicles);
+
+    Package* packages = NULL;
+    int m_packages = 0;
+    readPackages(input, &packages, &m_packages);
+
+    allocatePackages(vehicles, n_vehicles, packages, m_packages);
+
+    writeOutput(output, vehicles, n_vehicles, packages, m_packages);
+
+    for (int i = 0; i < n_vehicles; i++) {
+        free(vehicles[i].packages);
     }
-
-    qsort(pacotes, n_pacotes, sizeof(Pacote), comparePacote);
-
-    Alocacao *alocs = malloc(n_veiculos * sizeof(Alocacao));
-    for(int i = 0; i < n_veiculos; i++) {
-        alocs[i].veiculo = veiculos[i];
-        alocs[i].num_pacotes = 0;
-        alocs[i].total_valor = 0;
-        for(int j = 0; j < 10; j++) {
-            alocs[i].pacotes_indices[j] = -1;
-        }
-    }
-
-    for(int i = 0; i < n_veiculos; i++) {
-        Veiculo *v = &veiculos[i];
-
-        int alocou;
-        do {
-            alocou = 0;
-            for (int j = 0; j < n_pacotes; j++) {
-                if(pacotes[j].alocado == 0) {
-                    if (v->peso_atual + pacotes[j].peso <= v->peso_max &&
-                        v->volume_atual + pacotes[j].volume <= v->volume_max) {
-                        
-                        v->peso_atual += pacotes[j].peso;
-                        v->volume_atual += pacotes[j].volume;
-                        pacotes[j].alocado = 1;
-
-                        alocs[i].pacotes_indices[alocs[i].num_pacotes] = j;
-                        alocs[i].num_pacotes++;
-                        alocs[i].total_valor += pacotes[j].valor;
-                        alocou = 1;
-
-                        if (alocs[i].num_pacotes >= 10) break;
-                    }
-                }
-            }
-        } while(alocou);
-    }
-
-    for (int i = 0; i < n_veiculos; i++) {
-        for (int a = 0; a < alocs[i].num_pacotes - 1; a++) {
-            for (int b = 0; b < alocs[i].num_pacotes - a - 1; b++) {
-                int idx1 = alocs[i].pacotes_indices[b];
-                int idx2 = alocs[i].pacotes_indices[b+1];
-                if(pacotes[idx1].input_index > pacotes[idx2].input_index) {
-                    swap(&alocs[i].pacotes_indices[b], &alocs[i].pacotes_indices[b+1]);
-                }
-            }
-        }
-    }
-
-    for (int i = 0; i < n_veiculos; i++) {
-        Veiculo v = veiculos[i];
-        Alocacao a = alocs[i];
-        int percPeso = (int)round((v.peso_atual / v.peso_max) * 100);
-        int percVol  = (int)round((v.volume_atual / v.volume_max) * 100);
-        fprintf(output, "[%s]R$%.2f,%.0fKG(%d%%),%.0fL(%d%%)->", 
-                v.placa, a.total_valor, v.peso_atual, percPeso, v.volume_atual, percVol);
-        for (int j = 0; j < a.num_pacotes; j++) {
-            int idx = a.pacotes_indices[j];
-            fprintf(output, "%s", pacotes[idx].codigo);
-            if(j < a.num_pacotes - 1)
-                fprintf(output, ",");
-        }
-        fprintf(output, "\n");
-    }
-
-    int primeiroPendente = 1;
-    for(int i = 0; i < n_pacotes; i++) {
-        if(pacotes[i].alocado == 0) {
-            if(primeiroPendente) {
-                fprintf(output, "PENDENTE:");
-                primeiroPendente = 0;
-            } else {
-                fprintf(output, ",");
-            }
-            fprintf(output, "R$%.2f,%.0fKG,%.0fL->%s", 
-                    pacotes[i].valor, pacotes[i].peso, pacotes[i].volume, pacotes[i].codigo);
-        }
-    }
-    if(!primeiroPendente)
-        fprintf(output, "\n");
+    free(vehicles);
+    free(packages);
 
     fclose(input);
     fclose(output);
-    free(veiculos);
-    free(pacotes);
-    free(alocs);
     return 0;
 }

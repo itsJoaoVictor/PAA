@@ -49,9 +49,12 @@ PENDENTE:R$49.99,2KG,1L->AB111222333CD
 
 Requisitos que devem está presente no Código:
 - Deve ser Feito em C
-- Deve utilizar o Conceito do Busca em cadeias (Knuth-Morris-Pratt)
+- Deve utilizar o Conceito de Programaçaõ dinamica
 - tempo limite de execução não pode ser superior a 1 segundo por isso deve está otimizado para não ocorre timeout nem memory limit exceeded
-- deve se utilizar a Logica:
+- deve se utilizar a Logica: SE(E(Peso<=Peso Restante;Volume<=Volume Restante); J7/(RAIZ((Peso/Peso Restante)*(Volume/Volume Restante)));"Excede Limite") para calcular a eficiencia de cada pacote em relação ao veiculo e assim maximizar o valor total, apos alocar o pacote no veiculo deve se atualizar o peso e volume restante do veiculo e verificar se ainda cabe mais pacotes, caso não caiba mais pacotes deve se passar para o proximo veiculo e assim por diante, os proximos veiculo não podem carregar pacotes que ja foram alocados para veiculos anteriores  
+- O codigo não pode conter erros de compilação, execução ou logica
+- o codigo nção pode ter timeout: the monitored command dumped core Command terminated by signal 11, e nem memory limit exceeded: the monitored command dumped core Command terminated by signal 6
+- é monitorado: CPU Usage:|Max Memory:| Execution time: 
 // E/S padrao
 #include <stdio.h>
 // Funcao principal
@@ -72,3 +75,6 @@ int main(int argc, char* argv[]) {
     // Finalizando programa
     return 0;
 }
+
+
+
